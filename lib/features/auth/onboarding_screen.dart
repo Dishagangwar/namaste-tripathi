@@ -21,23 +21,24 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _controller = PageController();
-  Timer? _timer;
-  int _index = 0;
-
   late final List<_Slide> _data = [
     _Slide('Bike', 'Services', Img.bikeHero),
     _Slide('Home', 'Services', Img.homeHero),
     _Slide('Food', 'Delivery', Img.foodHero),
   ];
 
+  // Start deep into an endless page range so the carousel loops forward
+  // (no rewind across the middle slide) and can still be swiped backwards.
+  late final _controller = PageController(initialPage: _data.length * 1000);
+  Timer? _timer;
+  int _index = 0;
+
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted || !_controller.hasClients) return;
-      _controller.animateToPage(
-        (_index + 1) % _data.length,
+      _controller.nextPage(
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOutCubic,
       );
@@ -66,9 +67,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           PageView.builder(
             controller: _controller,
-            itemCount: _data.length,
-            onPageChanged: (i) => setState(() => _index = i),
-            itemBuilder: (context, i) => AppImage(_data[i].image, fit: BoxFit.cover),
+            onPageChanged: (i) => setState(() => _index = i % _data.length),
+            itemBuilder: (context, i) =>
+                AppImage(_data[i % _data.length].image, fit: BoxFit.cover),
           ),
           // Legibility scrim.
           const DecoratedBox(
@@ -76,12 +77,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: [0.0, 0.42, 0.68, 1.0],
+                stops: [0.0, 0.30, 0.56, 0.80],
                 colors: [
                   Color(0x33000000),
                   Color(0x00000000),
-                  Color(0xAA0A1526),
-                  Color(0xF00A1526),
+                  Color(0xCC0A1526),
+                  Color(0xF50A1526),
                 ],
               ),
             ),
@@ -96,9 +97,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     duration: const Duration(milliseconds: 350),
                     child: Row(
                       key: ValueKey(_index),
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
                           child: RichText(
+                            textAlign: TextAlign.center,
                             text: TextSpan(
                               style: const TextStyle(
                                 fontSize: 40,

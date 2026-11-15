@@ -6,8 +6,7 @@
 class Img {
   // Onboarding
   static const bikeHero = 'assets/images/bikeHero.jpg';
-  // Shared with Img.electrician below -- the same photo fronts the Home
-  // Services slide and the electrician trade.
+  // Portrait crops at 1290x2400 so the full-screen slides stay sharp.
   static const homeHero = 'assets/images/homeHero.jpg';
   static const foodHero = 'assets/images/foodHero.jpg';
 
@@ -71,7 +70,7 @@ class Img {
   static const man7 = 'assets/images/man7.jpg';
 
   // Trades / services
-  static const electrician = homeHero;
+  static const electrician = 'assets/images/electrician.jpg';
   static const plumbing = 'assets/images/plumbing.jpg';
   static const welding = 'assets/images/welding.jpg';
   static const cleaning = 'assets/images/cleaning.jpg';
