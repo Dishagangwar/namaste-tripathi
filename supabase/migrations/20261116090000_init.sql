@@ -1,0 +1,298 @@
+-- Namaste Tripathi — initial schema
+--
+-- Catalogue tables (restaurants, menu, hotels, properties, providers, offers,
+-- coupons) are world-readable: the app reads them with the anon key and
+-- nobody writes to them from the client. Content is edited through the
+-- Supabase dashboard or a service-role key.
+--
+-- User tables (profiles, bookings, favourites) are row-level isolated: a row
+-- is only visible and writable by the user it belongs to.
+
+-- ---------------------------------------------------------------- profiles
+create table if not exists public.profiles (
+  id             uuid primary key references auth.users (id) on delete cascade,
+  phone          text,
+  full_name      text,
+  role           text not null default 'user' check (role in ('user', 'provider')),
+  location_label text not null default 'Home',
+  address        text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+-- ---------------------------------------------------------------- food
+create table if not exists public.restaurants (
+  id            text primary key,
+  name          text not null,
+  cuisine       text not null default '',
+  rating        numeric(2, 1) not null default 0,
+  delivery_time text not null default '',
+  cost_for_two  integer not null default 0,
+  image         text not null default '',
+  tags          text[] not null default '{}',
+  free_delivery boolean not null default true,
+  badge         text,
+  sort_order    integer not null default 0
+);
+
+create table if not exists public.menu_items (
+  id            text primary key,
+  restaurant_id text not null references public.restaurants (id) on delete cascade,
+  name          text not null,
+  description   text not null default '',
+  price         numeric(10, 2) not null default 0,
+  image         text not null default '',
+  category      text not null default 'Popular',
+  is_veg        boolean not null default true,
+  sort_order    integer not null default 0
+);
+
+create index if not exists menu_items_restaurant_id_idx
+  on public.menu_items (restaurant_id);
+
+create table if not exists public.coupons (
+  code        text primary key,
+  description text not null default '',
+  flat        numeric(10, 2) not null default 0,
+  percent     numeric(5, 2) not null default 0,
+  min_order   numeric(10, 2) not null default 0,
+  sort_order  integer not null default 0
+);
+
+-- ---------------------------------------------------------------- hotels
+create table if not exists public.hotels (
+  id               text primary key,
+  name             text not null,
+  category         text not null default 'Luxury',
+  rating           numeric(2, 1) not null default 0,
+  reviews          integer not null default 0,
+  location         text not null default '',
+  distance         text not null default '',
+  price_per_night  integer not null default 0,
+  image            text not null default '',
+  gallery          text[] not null default '{}',
+  amenities        text[] not null default '{}',
+  tagline          text not null default '',
+  description      text not null default '',
+  discount_percent integer not null default 0,
+  sort_order       integer not null default 0
+);
+
+-- ---------------------------------------------------------------- real estate
+create table if not exists public.properties (
+  id            text primary key,
+  name          text not null,
+  location      text not null default '',
+  price         bigint not null default 0,
+  beds          integer not null default 0,
+  baths         integer not null default 0,
+  area          integer not null default 0,
+  image         text not null default '',
+  gallery       text[] not null default '{}',
+  tags          text[] not null default '{}',
+  description   text not null default '',
+  for_rent      boolean not null default false,
+  monthly_rent  integer not null default 0,
+  configuration text not null default '',
+  sort_order    integer not null default 0
+);
+
+-- ---------------------------------------------------------------- providers
+create table if not exists public.service_providers (
+  id               text primary key,
+  name             text not null,
+  profession       text not null default '',
+  category         text not null default '',
+  profession_color text not null default '#0B4EA2',
+  rating           numeric(2, 1) not null default 0,
+  reviews          integer not null default 0,
+  years            integer not null default 0,
+  distance         numeric(5, 2) not null default 0,
+  photo            text not null default '',
+  about            text not null default '',
+  email            text not null default '',
+  phone            text not null default '',
+  office           text not null default '',
+  operating_area   text not null default '',
+  sort_order       integer not null default 0
+);
+
+create table if not exists public.provider_expertise (
+  id          bigint generated by default as identity primary key,
+  provider_id text not null references public.service_providers (id) on delete cascade,
+  label       text not null,
+  icon        text not null default 'settings',
+  sort_order  integer not null default 0
+);
+
+create index if not exists provider_expertise_provider_id_idx
+  on public.provider_expertise (provider_id);
+
+create table if not exists public.provider_reviews (
+  id          bigint generated by default as identity primary key,
+  provider_id text not null references public.service_providers (id) on delete cascade,
+  author      text not null,
+  when_label  text not null default '',
+  rating      numeric(2, 1) not null default 5,
+  body        text not null default '',
+  sort_order  integer not null default 0
+);
+
+create index if not exists provider_reviews_provider_id_idx
+  on public.provider_reviews (provider_id);
+
+-- ---------------------------------------------------------------- offers
+create table if not exists public.offers (
+  code        text primary key,
+  title       text not null,
+  subtitle    text not null default '',
+  image       text not null default '',
+  color_start text not null default '#0B4EA2',
+  color_end   text not null default '#2F80ED',
+  valid_till  text not null default '',
+  sort_order  integer not null default 0
+);
+
+-- ---------------------------------------------------------------- bookings
+create table if not exists public.bookings (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title      text not null,
+  subtitle   text not null default '',
+  kind       text not null default '',
+  when_label text not null default '',
+  status     text not null default 'confirmed'
+               check (status in ('confirmed', 'processing', 'completed')),
+  image      text not null default '',
+  location   text,
+  reference  text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists bookings_user_id_created_at_idx
+  on public.bookings (user_id, created_at desc);
+
+-- ---------------------------------------------------------------- favourites
+create table if not exists public.favourites (
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  item_type  text not null check (item_type in ('property', 'restaurant')),
+  item_id    text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, item_type, item_id)
+);
+
+-- ---------------------------------------------------------------- RLS
+alter table public.profiles           enable row level security;
+alter table public.restaurants        enable row level security;
+alter table public.menu_items         enable row level security;
+alter table public.coupons            enable row level security;
+alter table public.hotels             enable row level security;
+alter table public.properties         enable row level security;
+alter table public.service_providers  enable row level security;
+alter table public.provider_expertise enable row level security;
+alter table public.provider_reviews   enable row level security;
+alter table public.offers             enable row level security;
+alter table public.bookings           enable row level security;
+alter table public.favourites         enable row level security;
+
+-- Catalogue: read-only for everyone, no client writes.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'restaurants', 'menu_items', 'coupons', 'hotels', 'properties',
+    'service_providers', 'provider_expertise', 'provider_reviews', 'offers'
+  ]
+  loop
+    execute format(
+      'drop policy if exists %I on public.%I', t || '_read_all', t);
+    execute format(
+      'create policy %I on public.%I for select to anon, authenticated using (true)',
+      t || '_read_all', t);
+  end loop;
+end
+$$;
+
+-- Profiles: a user sees and edits only their own row.
+drop policy if exists profiles_select_own on public.profiles;
+create policy profiles_select_own on public.profiles
+  for select to authenticated using (auth.uid() = id);
+
+drop policy if exists profiles_insert_own on public.profiles;
+create policy profiles_insert_own on public.profiles
+  for insert to authenticated with check (auth.uid() = id);
+
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles
+  for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Bookings: owner-only, all verbs.
+drop policy if exists bookings_select_own on public.bookings;
+create policy bookings_select_own on public.bookings
+  for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists bookings_insert_own on public.bookings;
+create policy bookings_insert_own on public.bookings
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists bookings_update_own on public.bookings;
+create policy bookings_update_own on public.bookings
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists bookings_delete_own on public.bookings;
+create policy bookings_delete_own on public.bookings
+  for delete to authenticated using (auth.uid() = user_id);
+
+-- Favourites: owner-only.
+drop policy if exists favourites_select_own on public.favourites;
+create policy favourites_select_own on public.favourites
+  for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists favourites_insert_own on public.favourites;
+create policy favourites_insert_own on public.favourites
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists favourites_delete_own on public.favourites;
+create policy favourites_delete_own on public.favourites
+  for delete to authenticated using (auth.uid() = user_id);
+
+-- ------------------------------------------------- profile on sign-up
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, phone, full_name)
+  values (
+    new.id,
+    new.phone,
+    coalesce(new.raw_user_meta_data ->> 'full_name', '')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ------------------------------------------------- updated_at
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_touch_updated_at on public.profiles;
+create trigger profiles_touch_updated_at
+  before update on public.profiles
+  for each row execute function public.touch_updated_at();
