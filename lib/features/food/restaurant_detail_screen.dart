@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 import '../shell/main_shell.dart';
 import 'cart_screen.dart';
@@ -269,6 +269,8 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final coupons = context.watch<CatalogState>().coupons;
+
     return AppCard(
       radius: 22,
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
@@ -325,10 +327,10 @@ class _InfoCard extends StatelessWidget {
             height: 92,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: kCoupons.length,
+              itemCount: coupons.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, i) {
-                final c = kCoupons[i];
+                final c = coupons[i];
                 return Container(
                   width: 172,
                   padding: const EdgeInsets.symmetric(

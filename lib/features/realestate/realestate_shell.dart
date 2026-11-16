@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -31,16 +32,25 @@ class _RealEstateShellState extends State<RealEstateShell> {
 
   @override
   Widget build(BuildContext context) {
+    final catalog = context.watch<CatalogState>();
+    // The Schedule tab opens on a showcase listing; whichever listing the
+    // catalogue puts first stands in when `pr5` is not there.
+    final showcase = catalog.propertyById('pr5') ??
+        (catalog.properties.isNotEmpty ? catalog.properties.first : null);
+
     return Scaffold(
       body: IndexedStack(
         index: _index,
         children: [
           const _ExploreTab(),
           const _FavouritesTab(),
-          ScheduleVisitScreen(
-            property: kProperties.firstWhere((p) => p.id == 'pr5'),
-            embedded: true,
-          ),
+          if (showcase != null)
+            ScheduleVisitScreen(property: showcase, embedded: true)
+          else
+            const Center(
+              child: Text('No listings yet.',
+                  style: TextStyle(color: AppColors.muted)),
+            ),
           const _ReProfileTab(),
         ],
       ),
@@ -64,7 +74,7 @@ class _ExploreTabState extends State<_ExploreTab> {
   String _filter = 'All';
   String _query = '';
 
-  List<Property> get _results => kProperties
+  List<Property> _resultsFrom(List<Property> properties) => properties
       .where((p) => _filter == 'All' || p.tags.contains(_filter))
       .where((p) =>
           _query.isEmpty ||
@@ -74,6 +84,8 @@ class _ExploreTabState extends State<_ExploreTab> {
 
   @override
   Widget build(BuildContext context) {
+    final results = _resultsFrom(context.watch<CatalogState>().properties);
+
     return SafeArea(
       bottom: false,
       child: Column(
@@ -120,9 +132,9 @@ class _ExploreTabState extends State<_ExploreTab> {
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              itemCount: _results.length,
+              itemCount: results.length,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
-              itemBuilder: (_, i) => PropertyCard(property: _results[i]),
+              itemBuilder: (_, i) => PropertyCard(property: results[i]),
             ),
           ),
         ],
@@ -271,8 +283,11 @@ class _FavouritesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favs = context.watch<FavouritesState>();
-    final saved =
-        kProperties.where((p) => favs.isPropertyFavourite(p.id)).toList();
+    final saved = context
+        .watch<CatalogState>()
+        .properties
+        .where((p) => favs.isPropertyFavourite(p.id))
+        .toList();
 
     return SafeArea(
       bottom: false,

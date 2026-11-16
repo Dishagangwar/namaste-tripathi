@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import 'food_list_screen.dart';
 
 class FoodOrdersScreen extends StatelessWidget {
@@ -12,7 +12,7 @@ class FoodOrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final past = kRestaurants.take(3).toList();
+    final past = context.watch<CatalogState>().restaurants.take(3).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Your Orders')),
@@ -104,8 +104,11 @@ class FoodSavedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favs = context.watch<FavouritesState>();
-    final saved =
-        kRestaurants.where((r) => favs.isRestaurantSaved(r.id)).toList();
+    final saved = context
+        .watch<CatalogState>()
+        .restaurants
+        .where((r) => favs.isRestaurantSaved(r.id))
+        .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Saved')),

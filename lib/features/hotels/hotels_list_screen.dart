@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -19,7 +21,7 @@ class _HotelsListScreenState extends State<HotelsListScreen> {
   String _filter = 'All';
   String _query = '';
 
-  List<Hotel> get _results => kHotels
+  List<Hotel> _resultsFrom(List<Hotel> hotels) => hotels
       .where((h) => _filter == 'All' || h.category == _filter)
       .where((h) =>
           _query.isEmpty ||
@@ -29,7 +31,7 @@ class _HotelsListScreenState extends State<HotelsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final results = _resultsFrom(context.watch<CatalogState>().hotels);
 
     return SafeArea(
       bottom: false,

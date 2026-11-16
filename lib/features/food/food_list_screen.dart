@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -20,8 +22,8 @@ class _FoodListScreenState extends State<FoodListScreen> {
   String _query = '';
   bool _sortByRating = false;
 
-  List<Restaurant> get _results {
-    var list = kRestaurants
+  List<Restaurant> _resultsFrom(List<Restaurant> restaurants) {
+    var list = restaurants
         .where((r) => _filter == 'All' || r.tags.contains(_filter))
         .where((r) =>
             _query.isEmpty ||
@@ -36,7 +38,7 @@ class _FoodListScreenState extends State<FoodListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final results = _resultsFrom(context.watch<CatalogState>().restaurants);
 
     return SafeArea(
       bottom: false,

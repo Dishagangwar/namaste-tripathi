@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 import 'payment_screen.dart';
 
@@ -20,6 +20,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartState>();
+    final coupons = context.watch<CatalogState>().coupons;
 
     if (cart.isEmpty) {
       return Scaffold(
@@ -118,10 +119,10 @@ class CartScreen extends StatelessWidget {
             height: 112,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: kCoupons.length,
+              itemCount: coupons.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, i) =>
-                  _CouponCard(coupon: kCoupons[i], cart: cart),
+                  _CouponCard(coupon: coupons[i], cart: cart),
             ),
           ),
           const SizedBox(height: 24),

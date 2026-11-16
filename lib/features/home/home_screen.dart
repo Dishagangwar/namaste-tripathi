@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -17,7 +18,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionState>();
+    final catalog = context.watch<CatalogState>();
     final shell = MainShell.of(context);
+    final rentals = catalog.properties.where((p) => p.forRent).toList();
 
     return SafeArea(
       bottom: false,
@@ -35,7 +38,7 @@ class HomeScreen extends StatelessWidget {
             child: _Carousel(
               title: 'Top Restaurants',
               onSeeAll: () => shell.openModule('food'),
-              children: kRestaurants
+              children: catalog.restaurants
                   .take(5)
                   .map((r) => _RestaurantMini(restaurant: r))
                   .toList(),
@@ -45,21 +48,22 @@ class HomeScreen extends StatelessWidget {
             child: _Carousel(
               title: 'Top Hotels',
               onSeeAll: () => shell.openModule('hotel'),
-              children:
-                  kHotels.take(5).map((h) => _HotelMini(hotel: h)).toList(),
+              children: catalog.hotels
+                  .take(5)
+                  .map((h) => _HotelMini(hotel: h))
+                  .toList(),
             ),
           ),
-          SliverToBoxAdapter(
-            child: _RentalStrip(
-              property: kProperties.firstWhere((p) => p.forRent),
-            ),
-          ),
+          // Skipped rather than crashed when the catalogue carries no
+          // rentals, which an edited dashboard can easily produce.
+          if (rentals.isNotEmpty)
+            SliverToBoxAdapter(child: _RentalStrip(property: rentals.first)),
           SliverToBoxAdapter(
             child: _Carousel(
               title: 'Top Properties for Sale',
               onSeeAll: () => shell.openModule('realestate'),
               height: 252,
-              children: kProperties
+              children: catalog.properties
                   .where((p) => !p.forRent)
                   .take(5)
                   .map((p) => _PropertyMini(property: p))

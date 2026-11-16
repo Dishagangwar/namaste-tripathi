@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 
 class OffersScreen extends StatelessWidget {
@@ -11,6 +12,8 @@ class OffersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final offers = context.watch<CatalogState>().offers;
+
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -26,7 +29,7 @@ class OffersScreen extends StatelessWidget {
             style: TextStyle(fontSize: 14, color: AppColors.muted),
           ),
           const SizedBox(height: 22),
-          for (final offer in kOffers) ...[
+          for (final offer in offers) ...[
             _OfferCard(offer: offer),
             const SizedBox(height: 16),
           ],

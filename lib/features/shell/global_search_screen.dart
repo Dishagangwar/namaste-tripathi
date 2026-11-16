@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../food/restaurant_detail_screen.dart';
 import '../hotels/hotel_detail_screen.dart';
 import '../providers/provider_detail_screen.dart';
@@ -29,8 +30,8 @@ class GlobalSearchScreen extends StatefulWidget {
 class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   String _query = '';
 
-  List<_Hit> get _all => [
-        for (final r in kRestaurants)
+  List<_Hit> _allFrom(CatalogState catalog) => [
+        for (final r in catalog.restaurants)
           _Hit(
             r.name,
             r.cuisine,
@@ -42,7 +43,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
               ),
             ),
           ),
-        for (final h in kHotels)
+        for (final h in catalog.hotels)
           _Hit(
             h.name,
             '${h.category} • ${h.location}',
@@ -52,7 +53,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
               MaterialPageRoute(builder: (_) => HotelDetailScreen(hotel: h)),
             ),
           ),
-        for (final p in kProperties)
+        for (final p in catalog.properties)
           _Hit(
             p.name,
             p.location,
@@ -64,7 +65,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
               ),
             ),
           ),
-        for (final s in kProviders)
+        for (final s in catalog.providers)
           _Hit(
             s.name,
             s.profession,
@@ -76,10 +77,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           ),
       ];
 
-  List<_Hit> get _results {
+  List<_Hit> _resultsFrom(CatalogState catalog) {
     if (_query.trim().isEmpty) return const [];
     final q = _query.toLowerCase();
-    return _all
+    return _allFrom(catalog)
         .where((h) =>
             h.title.toLowerCase().contains(q) ||
             h.subtitle.toLowerCase().contains(q) ||
@@ -89,7 +90,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final results = _resultsFrom(context.watch<CatalogState>());
 
     return SafeArea(
       bottom: false,

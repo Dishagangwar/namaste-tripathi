@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/catalog_state.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -19,7 +21,7 @@ class _ProvidersListScreenState extends State<ProvidersListScreen> {
   String _filter = 'All Services';
   String _query = '';
 
-  List<ServicePro> get _results => kProviders
+  List<ServicePro> _resultsFrom(List<ServicePro> providers) => providers
       .where((p) => _filter == 'All Services' || p.category == _filter)
       .where((p) =>
           _query.isEmpty ||
@@ -29,7 +31,7 @@ class _ProvidersListScreenState extends State<ProvidersListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _results;
+    final results = _resultsFrom(context.watch<CatalogState>().providers);
 
     return SafeArea(
       bottom: false,
