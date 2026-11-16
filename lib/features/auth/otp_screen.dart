@@ -44,6 +44,8 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
+  bool _verifying = false;
+
   String get _code => _controller.text;
   bool get _complete => _code.length == _length;
 
@@ -53,12 +55,54 @@ class _OtpScreenState extends State<OtpScreen> {
     return '$m:$s';
   }
 
-  void _verify() {
-    if (!_complete) return;
+  Future<void> _verify() async {
+    if (!_complete || _verifying) return;
     _node.unfocus();
-    Navigator.of(context).push(
+    final session = context.read<SessionState>();
+
+    setState(() => _verifying = true);
+    final error = await session.auth.verifyOtp(
+      countryCode: session.countryCode,
+      phone: session.phone,
+      token: _code,
+    );
+    if (!mounted) return;
+    setState(() => _verifying = false);
+
+    if (error != null) {
+      _controller.clear();
+      showAppSnack(context, error);
+      _node.requestFocus();
+      return;
+    }
+
+    // Signed in: pull down the profile, bookings and saved items that belong
+    // to this account before the shell renders them.
+    if (session.isSignedIn) {
+      final bookings = context.read<BookingsState>();
+      final favourites = context.read<FavouritesState>();
+      await Future.wait([
+        session.loadProfile(),
+        bookings.load(),
+        favourites.load(),
+      ]);
+      if (!mounted) return;
+    }
+
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const RoleScreen()),
     );
+  }
+
+  Future<void> _resend() async {
+    final session = context.read<SessionState>();
+    setState(() => _seconds = 90);
+    final error = await session.auth.sendOtp(
+      countryCode: session.countryCode,
+      phone: session.phone,
+    );
+    if (!mounted) return;
+    showAppSnack(context, error ?? 'A new code is on its way.');
   }
 
   @override
@@ -132,12 +176,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         const TextStyle(fontSize: 13, color: AppColors.muted),
                   ),
                   GestureDetector(
-                    onTap: _seconds > 0
-                        ? null
-                        : () {
-                            setState(() => _seconds = 90);
-                            showAppSnack(context, 'A new code is on its way.');
-                          },
+                    onTap: _seconds > 0 ? null : _resend,
                     child: Text(
                       'Resend',
                       style: TextStyle(
@@ -153,7 +192,7 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: _complete ? _verify : null,
+                onPressed: (_complete && !_verifying) ? _verify : null,
                 style: FilledButton.styleFrom(
                   disabledBackgroundColor:
                       AppColors.primary.withValues(alpha: 0.35),
@@ -162,7 +201,16 @@ class _OtpScreenState extends State<OtpScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Verify & Continue'),
+                child: _verifying
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Verify & Continue'),
               ),
               const SizedBox(height: 22),
             ],

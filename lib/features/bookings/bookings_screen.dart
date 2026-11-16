@@ -7,8 +7,23 @@ import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
 import '../../data/models.dart';
 
-class BookingsScreen extends StatelessWidget {
+class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
+
+  @override
+  State<BookingsScreen> createState() => _BookingsScreenState();
+}
+
+class _BookingsScreenState extends State<BookingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Pulls this user's own bookings from Supabase; a no-op when signed out,
+    // which leaves the sample itinerary on screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<BookingsState>().load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,56 +45,60 @@ class BookingsScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-              children: [
-                for (final b in bookings) ...[
-                  _BookingCard(booking: b),
-                  const SizedBox(height: 16),
-                ],
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF4FB),
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+            child: RefreshIndicator(
+              onRefresh: () => context.read<BookingsState>().load(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+                children: [
+                  for (final b in bookings) ...[
+                    _BookingCard(booking: b),
+                    const SizedBox(height: 16),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF4FB),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.lightbulb_outline_rounded,
+                              size: 21, color: AppColors.primary),
                         ),
-                        child: const Icon(Icons.lightbulb_outline_rounded,
-                            size: 21, color: AppColors.primary),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Traveler Tip',
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Traveler Tip',
+                                  style: TextStyle(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w700)),
+                              SizedBox(height: 7),
+                              Text(
+                                kTravelerTip,
                                 style: TextStyle(
-                                    fontSize: 15.5,
-                                    fontWeight: FontWeight.w700)),
-                            SizedBox(height: 7),
-                            Text(
-                              kTravelerTip,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.muted,
-                                  height: 1.6),
-                            ),
-                          ],
+                                    fontSize: 13,
+                                    color: AppColors.muted,
+                                    height: 1.6),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

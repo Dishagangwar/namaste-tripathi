@@ -156,10 +156,16 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 18),
           ],
           OutlinedButton(
-            onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-              (_) => false,
-            ),
+            // Ends the Supabase session before unwinding to onboarding, so
+            // the next person on this device starts clean.
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await session.signOut();
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                (_) => false,
+              );
+            },
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               foregroundColor: AppColors.danger,

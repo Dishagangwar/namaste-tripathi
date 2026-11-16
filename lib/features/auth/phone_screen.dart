@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_state.dart';
 import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import 'otp_screen.dart';
 
 class PhoneScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class PhoneScreen extends StatefulWidget {
 class _PhoneScreenState extends State<PhoneScreen> {
   final _controller = TextEditingController();
   String _code = '+91';
+  bool _sending = false;
+
   bool get _valid => _controller.text.trim().length >= 10;
 
   @override
@@ -24,10 +27,29 @@ class _PhoneScreenState extends State<PhoneScreen> {
     super.dispose();
   }
 
-  void _continue() {
-    if (!_valid) return;
-    context.read<SessionState>().setPhone(_controller.text.trim());
-    Navigator.of(context).push(
+  Future<void> _continue() async {
+    if (!_valid || _sending) return;
+    final session = context.read<SessionState>();
+    final number = _controller.text.trim();
+    session
+      ..setCountryCode(_code)
+      ..setPhone(number);
+
+    setState(() => _sending = true);
+    // Asks Supabase to text a code. Returns a message when that fails; a
+    // build without an anon key returns null and simply moves on.
+    final error = await session.auth.sendOtp(
+      countryCode: _code,
+      phone: number,
+    );
+    if (!mounted) return;
+    setState(() => _sending = false);
+
+    if (error != null) {
+      showAppSnack(context, error);
+      return;
+    }
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const OtpScreen()),
     );
   }
@@ -92,7 +114,7 @@ class _PhoneScreenState extends State<PhoneScreen> {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: _valid ? _continue : null,
+                onPressed: (_valid && !_sending) ? _continue : null,
                 style: FilledButton.styleFrom(
                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.35),
                   disabledForegroundColor: Colors.white70,
@@ -100,7 +122,16 @@ class _PhoneScreenState extends State<PhoneScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Continue'),
+                child: _sending
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Continue'),
               ),
               const SizedBox(height: 12),
               const Center(
