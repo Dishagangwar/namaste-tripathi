@@ -81,8 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 colors: [
                   Color(0x33000000),
                   Color(0x00000000),
-                  Color(0xCC0A1526),
-                  Color(0xF50A1526),
+                  Color(0xCC1A1206),
+                  Color(0xF51A1206),
                 ],
               ),
             ),
@@ -117,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 TextSpan(
                                   text: _data[_index].blue,
                                   style: const TextStyle(
-                                      color: Color(0xFF3B8EF5)),
+                                      color: Color(0xFFA16207)),
                                 ),
                               ],
                             ),
