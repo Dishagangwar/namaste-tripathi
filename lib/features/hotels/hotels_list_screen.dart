@@ -154,7 +154,7 @@ class HotelCard extends StatelessWidget {
                   children: [
                     for (final a in hotel.amenities)
                       Pill(a,
-                          bg: const Color(0xFFF2F4F8),
+                          bg: const Color(0xFFF9F3E3),
                           fg: AppColors.muted,
                           bold: false),
                   ],

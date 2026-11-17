@@ -175,7 +175,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F4F9),
+              color: const Color(0xFFFAF4E2),
               borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: Text(
@@ -355,7 +355,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF0B1F3A).withValues(alpha: 0.10),
+              color: const Color(0xFF3A2A05).withValues(alpha: 0.10),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),

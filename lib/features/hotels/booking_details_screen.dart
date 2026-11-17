@@ -95,7 +95,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             AppCard(
-              color: const Color(0xFFF1F4F9),
+              color: const Color(0xFFFAF4E2),
               padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +233,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                             r,
                             bg: _room == r
                                 ? AppColors.primary
-                                : const Color(0xFFF2F4F8),
+                                : const Color(0xFFF9F3E3),
                             fg: _room == r ? Colors.white : AppColors.muted,
                           ),
                         ),
