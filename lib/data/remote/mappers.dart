@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
 import '../icon_registry.dart';
 import '../models.dart';
 
@@ -51,8 +52,10 @@ List<String> strList(Map<String, dynamic> row, String key) {
   return const [];
 }
 
-/// Parses `#RRGGBB` / `#AARRGGBB` / `RRGGBB`. Falls back to the brand blue.
-Color colorFromHex(String? hex, [Color fallback = const Color(0xFF0B4EA2)]) {
+/// Parses `#RRGGBB` / `#AARRGGBB` / `RRGGBB`. Falls back to the brand
+/// colour, taken from the theme so a repaint cannot leave a stale literal
+/// behind in the data layer.
+Color colorFromHex(String? hex, [Color fallback = AppColors.primary]) {
   if (hex == null) return fallback;
   var value = hex.trim().replaceFirst('#', '');
   if (value.length == 6) value = 'FF$value';
@@ -185,7 +188,7 @@ Offer offerFromRow(Map<String, dynamic> row) => Offer(
       image: str(row, 'image'),
       colors: [
         colorFromHex(strOrNull(row, 'color_start')),
-        colorFromHex(strOrNull(row, 'color_end'), const Color(0xFF2F80ED)),
+        colorFromHex(strOrNull(row, 'color_end'), AppColors.primaryLight),
       ],
       validTill: str(row, 'valid_till'),
     );
