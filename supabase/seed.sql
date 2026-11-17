@@ -193,7 +193,7 @@ on conflict (id) do update set
 insert into public.service_providers
   (id, name, profession, category, profession_color, rating, reviews, years, distance,
    photo, about, email, phone, office, operating_area, sort_order) values
-  ('sp1', 'Ramesh Chand', 'Master Electrician', 'Electricians', '#0B4EA2', 4.9, 134, 12, 2.4,
+  ('sp1', 'Ramesh Chand', 'Master Electrician', 'Electricians', '#7A4F00', 4.9, 134, 12, 2.4,
    'assets/images/man1.jpg',
    E'With over 12 years of experience in high-quality residential and commercial services, Ramesh Chand has established a reputation for excellence and reliability. Known for combining technical expertise with strong customer communication, every project is handled with precision and care.\n\nRamesh Chand holds professional certifications and regularly updates skills to meet modern standards. The focus is on delivering lasting solutions that exceed client expectations while staying within budget.',
    'ramesh.chand@pro.com', '+91 98176 04512', 'Sector 10, Ghaziabad',
@@ -223,7 +223,7 @@ insert into public.service_providers
    'Karan works with desk-bound clients on getting strong without getting hurt. Sessions are one-to-one, programmed in six-week blocks, at your home or at a partner gym.',
    'karan@movewell.fit', '+91 98111 44320', 'Greater Kailash II, New Delhi',
    'South & Central Delhi — home and gym sessions', 6),
-  ('sp7', 'Vikram Sethi', 'Senior Electrician', 'Electricians', '#0B4EA2', 4.6, 89, 10, 5.3,
+  ('sp7', 'Vikram Sethi', 'Senior Electrician', 'Electricians', '#7A4F00', 4.6, 89, 10, 5.3,
    'assets/images/man7.jpg',
    'Ten years of commercial fit-outs and panel work, with a side speciality in backup power. Vikram handles load calculations and inverter sizing himself rather than passing it to a vendor.',
    'vikram.sethi@pro.com', '+91 99580 61233', 'Okhla Phase II, New Delhi',
@@ -311,7 +311,7 @@ select p.id, r.author, r.when_label, r.rating, r.body
 insert into public.offers
   (code, title, subtitle, image, color_start, color_end, valid_till, sort_order) values
   ('SAVE20', '20% off your food order', 'On orders above ₹300. Valid at all partner restaurants.',
-   'assets/images/platter.jpg', '#0B4EA2', '#2F80ED', 'Valid till 31 Dec', 1),
+   'assets/images/platter.jpg', '#7A4F00', '#A16207', 'Valid till 31 Dec', 1),
   ('STAY15', 'Flat 15% off hotel stays', 'Minimum two nights. Excludes peak dates.',
    'assets/images/hotel2.jpg', '#0E7490', '#22D3EE', 'Valid till 15 Jan', 2),
   ('RIDE50', '₹50 off your next 5 rides', 'Bike taxi and e-rickshaw. New riders only.',
