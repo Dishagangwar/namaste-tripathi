@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:namaste_tripathi/core/catalog_state.dart';
 import 'package:namaste_tripathi/core/supabase_config.dart';
+import 'package:namaste_tripathi/core/theme.dart';
 import 'package:namaste_tripathi/data/icon_registry.dart';
 import 'package:namaste_tripathi/data/mock_data.dart';
 import 'package:namaste_tripathi/data/models.dart';
@@ -65,8 +66,10 @@ void main() {
       expect(colorFromHex('#C2185B'), const Color(0xFFC2185B));
       expect(colorFromHex('0E7490'), const Color(0xFF0E7490));
       expect(colorFromHex('#800B4EA2'), const Color(0x800B4EA2));
-      expect(colorFromHex('nonsense'), const Color(0xFF0B4EA2));
-      expect(colorFromHex(null), const Color(0xFF0B4EA2));
+      // Asserted against the token, not a literal, so re-theming the app
+      // cannot leave this test pinning a colour nothing uses any more.
+      expect(colorFromHex('nonsense'), AppColors.primary);
+      expect(colorFromHex(null), AppColors.primary);
     });
 
     test('expertise icons resolve by name and degrade safely', () {

@@ -97,7 +97,7 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
               children: [
                 AppCard(
-                  color: const Color(0xFFF4F6FA),
+                  color: const Color(0xFFFBF6E6),
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
@@ -202,7 +202,7 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
                             decoration: BoxDecoration(
                               color: _slot == s
                                   ? AppColors.primary
-                                  : const Color(0xFFF0F2F6),
+                                  : const Color(0xFFF8F2E0),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -224,7 +224,7 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F4F9),
+                    color: const Color(0xFFFAF4E2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Row(

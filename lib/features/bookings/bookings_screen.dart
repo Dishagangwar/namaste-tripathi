@@ -58,7 +58,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF4FB),
+                      color: const Color(0xFFFDF5DD),
                       borderRadius: BorderRadius.circular(AppRadius.card),
                     ),
                     child: Row(

@@ -59,7 +59,7 @@ class ProviderDetailScreen extends StatelessWidget {
                             for (final e in pro.expertise)
                               Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F4F9),
+                                  color: const Color(0xFFFAF4E2),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Column(
@@ -186,7 +186,7 @@ class _Header extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B4EA2), Color(0xFF1565D8)],
+          colors: [Color(0xFF7A4F00), Color(0xFFA87C0A)],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
       ),
@@ -332,7 +332,7 @@ class _ReviewTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
+        color: const Color(0xFFFCF8EC),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -396,7 +396,7 @@ class _ContactCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF4FB),
+        color: const Color(0xFFFDF5DD),
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Column(

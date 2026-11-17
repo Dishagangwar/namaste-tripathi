@@ -429,7 +429,7 @@ class _FavouriteCard extends StatelessWidget {
                         width: 50,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F2F6),
+                          color: const Color(0xFFF8F2E0),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.delete_outline_rounded,

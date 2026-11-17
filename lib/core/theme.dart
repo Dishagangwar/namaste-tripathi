@@ -2,20 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Design tokens taken from the reference recording.
+/// Design tokens: pale yellow surfaces over white cards, with a deep gold
+/// for anything interactive.
+///
+/// Pale yellow can only ever be a surface. As a button fill it leaves white
+/// label text at roughly 1.2:1, which is illegible, so the brand colours are
+/// darkened until white sits on them safely -- `primary` lands at 5.9:1 on
+/// white and `primaryLight` at 4.9:1, both clearing WCAG AA for body text.
+/// The yellow the eye actually reads as the theme comes from `scaffold` and
+/// `tintSurface`.
 class AppColors {
-  static const primary = Color(0xFF0B4EA2);
-  static const primaryDark = Color(0xFF08386F);
-  static const primaryLight = Color(0xFF2F80ED);
-  static const tintSurface = Color(0xFFE8F0FC);
+  static const primary = Color(0xFF8A5A00);
+  static const primaryDark = Color(0xFF5E3D00);
+  static const primaryLight = Color(0xFFA16207);
+  static const tintSurface = Color(0xFFFDF3D1);
 
-  static const scaffold = Color(0xFFF5F7FA);
+  static const scaffold = Color(0xFFFFFBEF);
   static const surface = Colors.white;
-  static const border = Color(0xFFE6EAF0);
+  static const border = Color(0xFFEDE3C6);
 
-  static const text = Color(0xFF14181F);
-  static const muted = Color(0xFF6B7280);
-  static const faint = Color(0xFF9CA3AF);
+  static const text = Color(0xFF1F1A0E);
+  static const muted = Color(0xFF6F6652);
+  static const faint = Color(0xFFA2987E);
 
   static const star = Color(0xFFF5A524);
   static const success = Color(0xFF16A34A);
@@ -34,7 +42,7 @@ class AppRadius {
 
 final List<BoxShadow> kSoftShadow = [
   BoxShadow(
-    color: const Color(0xFF0B1F3A).withValues(alpha: 0.06),
+    color: const Color(0xFF3A2A05).withValues(alpha: 0.07),
     blurRadius: 18,
     offset: const Offset(0, 6),
   ),
@@ -42,7 +50,7 @@ final List<BoxShadow> kSoftShadow = [
 
 final List<BoxShadow> kLiftShadow = [
   BoxShadow(
-    color: const Color(0xFF0B1F3A).withValues(alpha: 0.12),
+    color: const Color(0xFF3A2A05).withValues(alpha: 0.14),
     blurRadius: 26,
     offset: const Offset(0, 10),
   ),

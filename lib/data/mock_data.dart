@@ -515,7 +515,7 @@ final kProviders = <ServicePro>[
     name: 'Ramesh Chand',
     profession: 'Master Electrician',
     category: 'Electricians',
-    professionColor: const Color(0xFF0B4EA2),
+    professionColor: const Color(0xFF7A4F00),
     rating: 4.9,
     reviews: 134,
     years: 12,
@@ -695,7 +695,7 @@ final kProviders = <ServicePro>[
     name: 'Vikram Sethi',
     profession: 'Senior Electrician',
     category: 'Electricians',
-    professionColor: const Color(0xFF0B4EA2),
+    professionColor: const Color(0xFF7A4F00),
     rating: 4.6,
     reviews: 89,
     years: 10,
@@ -806,7 +806,7 @@ final kOffers = <Offer>[
     title: '20% off your food order',
     subtitle: 'On orders above ₹300. Valid at all partner restaurants.',
     image: Img.platter,
-    colors: const [Color(0xFF0B4EA2), Color(0xFF2F80ED)],
+    colors: const [Color(0xFF7A4F00), Color(0xFFA16207)],
     validTill: 'Valid till 31 Dec',
   ),
   Offer(
@@ -849,7 +849,7 @@ class RideOption {
 
 const kRideOptions = <RideOption>[
   RideOption('Bike taxi', 'Fastest in traffic', Icons.two_wheeler_rounded,
-      Color(0xFF0B4EA2), '3 min away', 8),
+      Color(0xFF7A4F00), '3 min away', 8),
   RideOption('E-rickshaw', 'Cheaper and Reliable', Icons.electric_rickshaw,
       Color(0xFF16A34A), '6 min away', 6),
   RideOption('Parcel', 'Send Anything', Icons.inventory_2_outlined,

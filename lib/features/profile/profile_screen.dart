@@ -27,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF0B4EA2), Color(0xFF1565D8)],
+                colors: [Color(0xFF7A4F00), Color(0xFFA87C0A)],
               ),
               boxShadow: kLiftShadow,
             ),

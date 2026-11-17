@@ -142,7 +142,7 @@ class _MethodTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F2F6),
+                color: const Color(0xFFF8F2E0),
                 borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(method.icon, size: 20, color: AppColors.text),
