@@ -32,11 +32,11 @@ class AppImage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE3ECF9), Color(0xFFCBDCF3)],
+          colors: [Color(0xFFFAF1D4), Color(0xFFEFE0B2)],
         ),
       ),
       child: const Center(
-        child: Icon(Icons.image_outlined, color: Color(0xFF9BB4D6), size: 28),
+        child: Icon(Icons.image_outlined, color: Color(0xFFC2A765), size: 28),
       ),
     );
 
@@ -350,7 +350,7 @@ class Pill extends StatelessWidget {
 
 /// Dark label used on top of photos (LUXURY, HERITAGE, CROWD FAVORITE ...).
 class OverlayTag extends StatelessWidget {
-  const OverlayTag(this.label, {super.key, this.color = const Color(0xCC14181F)});
+  const OverlayTag(this.label, {super.key, this.color = const Color(0xCC1F1A0E)});
   final String label;
   final Color color;
 
@@ -425,7 +425,7 @@ class BottomActionBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0B1F3A).withValues(alpha: 0.10),
+            color: const Color(0xFF3A2A05).withValues(alpha: 0.10),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
