@@ -495,7 +495,7 @@ class _InstructionTile extends StatelessWidget {
         height: 92,
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.tintSurface : const Color(0xFFF0F2F6),
+          color: selected ? AppColors.tintSurface : const Color(0xFFF8F2E0),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected ? AppColors.primary : Colors.transparent,
