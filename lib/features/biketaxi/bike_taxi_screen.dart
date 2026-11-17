@@ -68,7 +68,7 @@ class _BikeTaxiScreenState extends State<BikeTaxiScreen> {
                   width: 34,
                   height: 34,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF0F2F6),
+                    color: Color(0xFFF8F2E0),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.person_outline_rounded,
@@ -103,7 +103,7 @@ class _BikeTaxiScreenState extends State<BikeTaxiScreen> {
                             },
                           )
                         : null,
-                    fillColor: const Color(0xFFF2F4F8),
+                    fillColor: const Color(0xFFF9F3E3),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       borderSide: const BorderSide(color: AppColors.border),
