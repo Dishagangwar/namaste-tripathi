@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'core/app_state.dart';
-import 'core/catalog_state.dart';
+import 'bloc/bookings/bookings_bloc.dart';
+import 'bloc/cart/cart_bloc.dart';
+import 'bloc/catalog/catalog_bloc.dart';
+import 'bloc/favourites/favourites_bloc.dart';
+import 'bloc/session/session_bloc.dart';
 import 'core/theme.dart';
 import 'data/remote/supabase_service.dart';
 import 'features/auth/onboarding_screen.dart';
@@ -26,18 +29,18 @@ class NamasteTripathiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return MultiBlocProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SessionState()),
-        ChangeNotifierProvider(create: (_) => CartState()),
-        ChangeNotifierProvider(create: (_) => FavouritesState()),
-        ChangeNotifierProvider(create: (_) => BookingsState()),
-        // lazy: false matters here -- a lazy provider would not build until
+        BlocProvider(create: (_) => SessionBloc()),
+        BlocProvider(create: (_) => CartBloc()),
+        BlocProvider(create: (_) => FavouritesBloc()),
+        BlocProvider(create: (_) => BookingsBloc()),
+        // lazy: false matters here -- a lazy bloc would not be built until
         // the home screen first read it, so the fetch would start after
         // onboarding rather than during it.
-        ChangeNotifierProvider(
+        BlocProvider(
           lazy: false,
-          create: (_) => CatalogState()..load(),
+          create: (_) => CatalogBloc()..add(const CatalogRequested()),
         ),
       ],
       child: MaterialApp(
