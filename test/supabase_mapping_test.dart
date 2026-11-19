@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:namaste_tripathi/core/catalog_state.dart';
+import 'package:namaste_tripathi/bloc/catalog/catalog_bloc.dart';
 import 'package:namaste_tripathi/core/supabase_config.dart';
 import 'package:namaste_tripathi/core/theme.dart';
 import 'package:namaste_tripathi/data/icon_registry.dart';
@@ -145,9 +145,10 @@ void main() {
       expect(bundled.coupons, same(kCoupons));
     });
 
-    test('CatalogState serves bundled data before anything loads', () {
-      final state = CatalogState();
+    test('the bloc opens on bundled data, before any event', () {
+      final state = CatalogBloc().state;
 
+      expect(state.status, CatalogStatus.initial);
       expect(state.isLive, isFalse);
       expect(state.restaurants, isNotEmpty);
       expect(state.restaurantById('r1')?.name, 'The Obsidian Grill');
@@ -158,15 +159,38 @@ void main() {
     });
 
     test('an unreachable project leaves the UI on bundled data', () async {
-      // No key is compiled into the test binary, so the repository must take
-      // the offline path rather than attempting a request.
-      final state = CatalogState();
-      await state.load();
+      // No key is compiled into the test binary, so the repository takes the
+      // offline path rather than attempting a request.
+      final bloc = CatalogBloc()..add(const CatalogRequested());
+      await bloc.stream.firstWhere((s) => s.status == CatalogStatus.ready);
 
-      expect(state.isLoading, isFalse);
-      expect(state.isLive, isFalse);
-      expect(state.restaurants, isNotEmpty);
-      expect(state.offers, isNotEmpty);
+      expect(bloc.state.isLoading, isFalse);
+      expect(bloc.state.isLive, isFalse);
+      expect(bloc.state.restaurants, isNotEmpty);
+      expect(bloc.state.offers, isNotEmpty);
+      await bloc.close();
+    });
+
+    test('CatalogRequested loads once; CatalogRefreshed always re-fetches',
+        () async {
+      final bloc = CatalogBloc();
+      final seen = <CatalogStatus>[];
+      final sub = bloc.stream.listen((s) => seen.add(s.status));
+
+      bloc.add(const CatalogRequested());
+      await bloc.stream.firstWhere((s) => s.status == CatalogStatus.ready);
+
+      // The second request is swallowed, so no further loading state.
+      bloc.add(const CatalogRequested());
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(seen.where((s) => s == CatalogStatus.loading).length, 1);
+
+      bloc.add(const CatalogRefreshed());
+      await bloc.stream.firstWhere((s) => s.status == CatalogStatus.ready);
+      expect(seen.where((s) => s == CatalogStatus.loading).length, 2);
+
+      await sub.cancel();
+      await bloc.close();
     });
   });
 }
