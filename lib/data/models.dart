@@ -55,11 +55,17 @@ class MenuItem {
   final bool isVeg;
 }
 
+/// Immutable so it can live inside a bloc state: mutating a line in place
+/// would change the old state object too, and Equatable would then see no
+/// difference and skip the rebuild.
 class CartLine {
-  CartLine(this.item, this.quantity);
+  const CartLine(this.item, this.quantity);
   final MenuItem item;
-  int quantity;
+  final int quantity;
   double get total => item.price * quantity;
+
+  CartLine copyWith({int? quantity}) =>
+      CartLine(item, quantity ?? this.quantity);
 }
 
 class Coupon {
