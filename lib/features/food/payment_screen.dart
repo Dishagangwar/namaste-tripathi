@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/cart/cart_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'order_success_screen.dart';
@@ -39,7 +39,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartState>();
+    final cart = context.watch<CartBloc>().state;
     final sections = <String>[];
     for (final m in _methods) {
       if (!sections.contains(m.section)) sections.add(m.section);
@@ -103,7 +103,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
           );
-          context.read<CartState>().clear();
+          context.read<CartBloc>().add(const CartCleared());
         },
       ),
     );

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
-import '../../core/catalog_state.dart';
+import '../../bloc/cart/cart_bloc.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
+
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -85,7 +86,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final r = widget.restaurant;
-    final cart = context.watch<CartState>();
+    final cart = context.watch<CartBloc>().state;
 
     return Scaffold(
       body: Stack(
@@ -269,7 +270,7 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coupons = context.watch<CatalogState>().coupons;
+    final coupons = context.watch<CatalogBloc>().state.coupons;
 
     return AppCard(
       radius: 22,
@@ -396,7 +397,7 @@ class MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartState>();
+    final cart = context.watch<CartBloc>().state;
     final qty = cart.quantityOf(item);
 
     return Padding(
@@ -452,7 +453,7 @@ class MenuRow extends StatelessWidget {
                     if (qty == 0)
                       FilledButton(
                         onPressed: () =>
-                            context.read<CartState>().add(item, restaurant),
+                            context.read<CartBloc>().add(CartItemAdded(item, restaurant)),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(84, 38),
                           padding: EdgeInsets.zero,
@@ -476,7 +477,7 @@ class MenuRow extends StatelessWidget {
                             _StepButton(
                               icon: Icons.remove_rounded,
                               onTap: () =>
-                                  context.read<CartState>().remove(item),
+                                  context.read<CartBloc>().add(CartItemRemoved(item)),
                             ),
                             SizedBox(
                               width: 26,
@@ -493,8 +494,8 @@ class MenuRow extends StatelessWidget {
                             _StepButton(
                               icon: Icons.add_rounded,
                               onTap: () => context
-                                  .read<CartState>()
-                                  .add(item, restaurant),
+                                  .read<CartBloc>()
+                                  .add(CartItemAdded(item, restaurant)),
                             ),
                           ],
                         ),
@@ -558,7 +559,7 @@ class CartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartState>();
+    final cart = context.watch<CartBloc>().state;
     if (cart.isEmpty) return const SizedBox.shrink();
 
     return Padding(

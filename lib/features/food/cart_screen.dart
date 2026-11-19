@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
-import '../../core/catalog_state.dart';
+import '../../bloc/cart/cart_bloc.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
+
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -19,8 +20,8 @@ class CartScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartState>();
-    final coupons = context.watch<CatalogState>().coupons;
+    final cart = context.watch<CartBloc>().state;
+    final coupons = context.watch<CatalogBloc>().state.coupons;
 
     if (cart.isEmpty) {
       return Scaffold(
@@ -188,7 +189,7 @@ class CartScreen extends StatelessWidget {
                     label: ins.$2,
                     selected: cart.instructions.contains(ins.$2),
                     onTap: () =>
-                        context.read<CartState>().toggleInstruction(ins.$2),
+                        context.read<CartBloc>().add(CartInstructionToggled(ins.$2)),
                   ),
                 ),
                 if (ins != _instructions.last) const SizedBox(width: 10),
@@ -215,7 +216,7 @@ class _CartLineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.read<CartState>();
+    final cart = context.read<CartBloc>();
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
@@ -257,7 +258,8 @@ class _CartLineRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 InkWell(
-                  onTap: () => cart.remove(line.item),
+                  onTap: () =>
+                      context.read<CartBloc>().add(CartItemRemoved(line.item)),
                   child: const SizedBox(
                     width: 30,
                     height: 34,
@@ -277,7 +279,9 @@ class _CartLineRow extends StatelessWidget {
                   ),
                 ),
                 InkWell(
-                  onTap: () => cart.add(line.item, cart.restaurant!),
+                  onTap: () => context
+                      .read<CartBloc>()
+                      .add(CartItemAdded(line.item, cart.state.restaurant!)),
                   child: const SizedBox(
                     width: 30,
                     height: 34,
@@ -315,7 +319,7 @@ class _SuggestionCard extends StatelessWidget {
       width: 112,
       child: AppCard(
         padding: const EdgeInsets.all(8),
-        onTap: () => context.read<CartState>().add(item, cart.restaurant!),
+        onTap: () => context.read<CartBloc>().add(CartItemAdded(item, cart.restaurant!)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -415,7 +419,7 @@ class _CouponCard extends StatelessWidget {
                   )
                 : FilledButton(
                     onPressed: eligible
-                        ? () => context.read<CartState>().applyCoupon(coupon)
+                        ? () => context.read<CartBloc>().add(CartCouponToggled(coupon))
                         : () => showAppSnack(
                               context,
                               'Add ${rupees(coupon.minOrder - cart.subtotal)} '

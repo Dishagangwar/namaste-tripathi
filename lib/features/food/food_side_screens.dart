@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
+import '../../bloc/favourites/favourites_bloc.dart';
+import '../../bloc/session/session_bloc.dart';
+
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'food_list_screen.dart';
@@ -12,7 +14,7 @@ class FoodOrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final past = context.watch<CatalogState>().restaurants.take(3).toList();
+    final past = context.watch<CatalogBloc>().state.restaurants.take(3).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Your Orders')),
@@ -103,7 +105,7 @@ class FoodSavedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favs = context.watch<FavouritesState>();
+    final favs = context.watch<FavouritesBloc>().state;
     final saved = context
         .watch<CatalogState>()
         .restaurants
@@ -140,7 +142,7 @@ class FoodProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionState>();
+    final session = context.watch<SessionBloc>().state;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
