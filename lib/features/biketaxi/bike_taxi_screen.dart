@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -33,7 +33,7 @@ class _BikeTaxiScreenState extends State<BikeTaxiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionState>();
+    final session = context.watch<SessionBloc>().state;
 
     return SafeArea(
       bottom: false,
