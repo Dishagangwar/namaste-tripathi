@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../shell/main_shell.dart';
@@ -10,7 +10,7 @@ class RoleScreen extends StatelessWidget {
   const RoleScreen({super.key});
 
   void _choose(BuildContext context, JoinRole role) {
-    context.read<SessionState>().setRole(role);
+    context.read<SessionBloc>().add(SessionRoleSelected(role));
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainShell()),
       (_) => false,
