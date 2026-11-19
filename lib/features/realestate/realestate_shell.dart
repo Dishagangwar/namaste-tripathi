@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
+import '../../bloc/favourites/favourites_bloc.dart';
+import '../../bloc/session/session_bloc.dart';
+
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -32,7 +34,7 @@ class _RealEstateShellState extends State<RealEstateShell> {
 
   @override
   Widget build(BuildContext context) {
-    final catalog = context.watch<CatalogState>();
+    final catalog = context.watch<CatalogBloc>().state;
     // The Schedule tab opens on a showcase listing; whichever listing the
     // catalogue puts first stands in when `pr5` is not there.
     final showcase = catalog.propertyById('pr5') ??
@@ -84,7 +86,7 @@ class _ExploreTabState extends State<_ExploreTab> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _resultsFrom(context.watch<CatalogState>().properties);
+    final results = _resultsFrom(context.watch<CatalogBloc>().state.properties);
 
     return SafeArea(
       bottom: false,
@@ -149,7 +151,7 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favs = context.watch<FavouritesState>();
+    final favs = context.watch<FavouritesBloc>().state;
     final liked = favs.isPropertyFavourite(property.id);
 
     return AppCard(
@@ -174,7 +176,7 @@ class PropertyCard extends StatelessWidget {
                 right: 12,
                 child: GestureDetector(
                   onTap: () =>
-                      context.read<FavouritesState>().toggleProperty(property.id),
+                      context.read<FavouritesBloc>().add(FavouritePropertyToggled(property.id)),
                   child: Container(
                     width: 38,
                     height: 38,
@@ -282,7 +284,7 @@ class _FavouritesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favs = context.watch<FavouritesState>();
+    final favs = context.watch<FavouritesBloc>().state;
     final saved = context
         .watch<CatalogState>()
         .properties
@@ -422,9 +424,7 @@ class _FavouriteCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     GestureDetector(
-                      onTap: () => context
-                          .read<FavouritesState>()
-                          .toggleProperty(property.id),
+                      onTap: () => context.read<FavouritesBloc>().add(FavouritePropertyToggled(property.id)),
                       child: Container(
                         width: 50,
                         height: 46,
@@ -452,8 +452,8 @@ class _ReProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionState>();
-    final favs = context.watch<FavouritesState>();
+    final session = context.watch<SessionBloc>().state;
+    final favs = context.watch<FavouritesBloc>().state;
 
     return SafeArea(
       bottom: false,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/bookings/bookings_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -70,7 +70,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       reference:
           '#AB-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
     );
-    context.read<BookingsState>().add(booking);
+    context.read<BookingsBloc>().add(BookingAdded(booking));
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

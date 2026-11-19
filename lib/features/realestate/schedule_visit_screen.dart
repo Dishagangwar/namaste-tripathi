@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/bookings/bookings_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -274,18 +274,20 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
     final when =
         '${_monthNames[_month.month - 1]} $_day, ${_month.year} • $_slot';
 
-    context.read<BookingsState>().add(
-          Booking(
-            id: 'visit${DateTime.now().millisecondsSinceEpoch}',
-            title: widget.property.name,
-            subtitle: 'Site visit with a concierge',
-            kind: 'Property Visit',
-            when: when,
-            status: BookingStatus.confirmed,
-            image: widget.property.image,
-            location: widget.property.location,
-            reference:
-                '#PV-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+    context.read<BookingsBloc>().add(
+          BookingAdded(
+            Booking(
+              id: 'visit${DateTime.now().millisecondsSinceEpoch}',
+              title: widget.property.name,
+              subtitle: 'Site visit with a concierge',
+              kind: 'Property Visit',
+              when: when,
+              status: BookingStatus.confirmed,
+              image: widget.property.image,
+              location: widget.property.location,
+              reference:
+                  '#PV-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+            ),
           ),
         );
 

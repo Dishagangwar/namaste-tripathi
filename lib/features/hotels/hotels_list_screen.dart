@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -31,7 +31,7 @@ class _HotelsListScreenState extends State<HotelsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _resultsFrom(context.watch<CatalogState>().hotels);
+    final results = _resultsFrom(context.watch<CatalogBloc>().state.hotels);
 
     return SafeArea(
       bottom: false,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/favourites/favourites_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -13,7 +13,7 @@ class PropertyDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favs = context.watch<FavouritesState>();
+    final favs = context.watch<FavouritesBloc>().state;
     final liked = favs.isPropertyFavourite(property.id);
 
     return Scaffold(
@@ -43,9 +43,7 @@ class PropertyDetailScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: GestureDetector(
-                  onTap: () => context
-                      .read<FavouritesState>()
-                      .toggleProperty(property.id),
+                  onTap: () => context.read<FavouritesBloc>().add(FavouritePropertyToggled(property.id)),
                   child: Container(
                     width: 40,
                     decoration: BoxDecoration(
