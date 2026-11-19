@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../food/restaurant_detail_screen.dart';
@@ -90,7 +90,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final results = _resultsFrom(context.watch<CatalogState>());
+    final results = _resultsFrom(context.watch<CatalogBloc>().state);
 
     return SafeArea(
       bottom: false,

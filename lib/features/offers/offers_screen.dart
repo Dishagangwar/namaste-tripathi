@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
@@ -12,7 +12,7 @@ class OffersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final offers = context.watch<CatalogState>().offers;
+    final offers = context.watch<CatalogBloc>().state.offers;
 
     return SafeArea(
       bottom: false,

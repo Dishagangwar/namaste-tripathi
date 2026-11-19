@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/bookings/bookings_bloc.dart';
+import '../../bloc/favourites/favourites_bloc.dart';
+import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../auth/onboarding_screen.dart';
@@ -11,9 +13,9 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionState>();
-    final bookings = context.watch<BookingsState>().items.length;
-    final favs = context.watch<FavouritesState>().propertyIds.length;
+    final session = context.watch<SessionBloc>().state;
+    final bookings = context.watch<BookingsBloc>().state.items.length;
+    final favs = context.watch<FavouritesBloc>().state.propertyIds.length;
 
     return SafeArea(
       bottom: false,
@@ -160,7 +162,7 @@ class ProfileScreen extends StatelessWidget {
             // the next person on this device starts clean.
             onPressed: () async {
               final navigator = Navigator.of(context);
-              await session.signOut();
+              context.read<SessionBloc>().add(const SessionSignedOut());
               navigator.pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const OnboardingScreen()),
                 (_) => false,

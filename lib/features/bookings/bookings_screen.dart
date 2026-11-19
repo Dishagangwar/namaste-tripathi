@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
+import '../../bloc/bookings/bookings_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -21,13 +21,13 @@ class _BookingsScreenState extends State<BookingsScreen> {
     // Pulls this user's own bookings from Supabase; a no-op when signed out,
     // which leaves the sample itinerary on screen.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<BookingsState>().load();
+      if (mounted) context.read<BookingsBloc>().add(const BookingsRequested());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final bookings = context.watch<BookingsState>().items;
+    final bookings = context.watch<BookingsBloc>().state.items;
 
     return SafeArea(
       bottom: false,
@@ -46,7 +46,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => context.read<BookingsState>().load(),
+              onRefresh: () async =>
+                  context.read<BookingsBloc>().add(const BookingsRequested()),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),

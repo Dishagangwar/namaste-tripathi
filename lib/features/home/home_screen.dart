@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/app_state.dart';
-import '../../core/catalog_state.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
+import '../../bloc/session/session_bloc.dart';
+
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/mock_data.dart';
@@ -17,8 +18,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = context.watch<SessionState>();
-    final catalog = context.watch<CatalogState>();
+    final session = context.watch<SessionBloc>().state;
+    final catalog = context.watch<CatalogBloc>().state;
     final shell = MainShell.of(context);
     final rentals = catalog.properties.where((p) => p.forRent).toList();
 
@@ -121,7 +122,9 @@ class _TopBar extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12.5, color: AppColors.muted)),
                 onTap: () {
-                  session.setLocation(place.$2, place.$3);
+                  context
+                      .read<SessionBloc>()
+                      .add(SessionLocationChanged(place.$2, place.$3));
                   Navigator.pop(context);
                 },
               ),
