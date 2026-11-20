@@ -2,7 +2,8 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../data/models.dart';
-import '../../data/remote/catalog_repository.dart';
+import '../../data/backend.dart';
+import '../../data/repositories.dart';
 
 part 'catalog_event.dart';
 part 'catalog_state.dart';
@@ -13,13 +14,14 @@ part 'catalog_state.dart';
 /// bloc has no failure state to model -- the worst case is simply that
 /// `isLive` stays false.
 class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
-  CatalogBloc({this.repository = const CatalogRepository()})
-      : super(CatalogState.bundled()) {
+  CatalogBloc({CatalogSource? repository})
+      : repository = repository ?? Backend.catalog(),
+        super(CatalogState.bundled()) {
     on<CatalogRequested>(_onRequested);
     on<CatalogRefreshed>(_onRefreshed);
   }
 
-  final CatalogRepository repository;
+  final CatalogSource repository;
   bool _loadedOnce = false;
 
   Future<void> _onRequested(
