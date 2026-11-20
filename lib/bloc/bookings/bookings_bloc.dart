@@ -3,20 +3,22 @@ import 'package:equatable/equatable.dart';
 
 import '../../data/mock_data.dart';
 import '../../data/models.dart';
-import '../../data/remote/bookings_repository.dart';
+import '../../data/backend.dart';
+import '../../data/repositories.dart';
 
 part 'bookings_event.dart';
 part 'bookings_state.dart';
 
 /// Hotel stays, visits and orders for the signed-in user.
 class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
-  BookingsBloc({this.repository = const BookingsRepository()})
-      : super(BookingsState()) {
+  BookingsBloc({BookingsSource? repository})
+      : repository = repository ?? Backend.bookings(),
+        super(BookingsState()) {
     on<BookingsRequested>(_onRequested);
     on<BookingAdded>(_onAdded);
   }
 
-  final BookingsRepository repository;
+  final BookingsSource repository;
 
   Future<void> _onRequested(
     BookingsRequested event,
