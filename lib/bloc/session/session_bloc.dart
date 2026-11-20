@@ -1,8 +1,8 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../data/remote/auth_repository.dart';
-import '../../data/remote/supabase_service.dart';
+import '../../data/backend.dart';
+import '../../data/repositories.dart';
 
 part 'session_event.dart';
 part 'session_state.dart';
@@ -13,8 +13,9 @@ part 'session_state.dart';
 /// calling out, so the screens stay walkable on bundled data instead of
 /// dead-ending at the OTP box.
 class SessionBloc extends Bloc<SessionEvent, SessionState> {
-  SessionBloc({this.auth = const AuthRepository()})
-      : super(const SessionState()) {
+  SessionBloc({AuthSource? auth})
+      : auth = auth ?? Backend.auth(),
+        super(const SessionState()) {
     on<SessionPhoneChanged>((e, emit) => emit(state.copyWith(phone: e.phone)));
     on<SessionCountryCodeChanged>(
         (e, emit) => emit(state.copyWith(countryCode: e.countryCode)));
@@ -29,12 +30,10 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     on<SessionSignedOut>(_onSignedOut);
   }
 
-  final AuthRepository auth;
+  final AuthSource auth;
 
   /// True when this device holds a real Supabase session.
-  bool get isSignedIn => SupabaseService.isSignedIn;
-
-  String? get userId => SupabaseService.currentUser?.id;
+  bool get isSignedIn => auth.isSignedIn;
 
   Future<void> _onOtpRequested(
     OtpRequested event,
