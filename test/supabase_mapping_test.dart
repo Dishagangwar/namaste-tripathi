@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:namaste_tripathi/bloc/catalog/catalog_bloc.dart';
+import 'package:namaste_tripathi/data/backend.dart';
 import 'package:namaste_tripathi/core/supabase_config.dart';
 import 'package:namaste_tripathi/core/theme.dart';
 import 'package:namaste_tripathi/data/icon_registry.dart';
@@ -133,6 +134,11 @@ void main() {
   });
 
   group('catalogue fallback', () {
+    // This group is about the Supabase path specifically; without pinning
+    // it, a keyless checkout now resolves to the demo backend instead.
+    setUp(() => Backend.mode = BackendMode.supabase);
+    tearDown(Backend.reset);
+
     test('the bundled snapshot matches the shipped lists', () {
       final bundled = CatalogData.bundled();
 

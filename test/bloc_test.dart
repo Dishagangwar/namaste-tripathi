@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:namaste_tripathi/bloc/cart/cart_bloc.dart';
+import 'package:namaste_tripathi/data/api/api_client.dart';
+import 'package:namaste_tripathi/data/api/demo_backend.dart';
+import 'package:namaste_tripathi/data/backend.dart';
 import 'package:namaste_tripathi/bloc/favourites/favourites_bloc.dart';
 import 'package:namaste_tripathi/bloc/session/session_bloc.dart';
 import 'package:namaste_tripathi/data/mock_data.dart';
@@ -125,6 +128,14 @@ void main() {
   });
 
   group('SessionBloc', () {
+    // Against the demo backend, with the simulated network removed so the
+    // tests do not sit waiting on it.
+    setUp(() {
+      Backend.mode = BackendMode.demo;
+      Backend.client = ApiClient.demo(latency: Duration.zero);
+    });
+    tearDown(Backend.reset);
+
     test('holds the typed number and country code', () async {
       final bloc = SessionBloc()
         ..add(const SessionCountryCodeChanged('+44'))
@@ -136,16 +147,45 @@ void main() {
       await bloc.close();
     });
 
-    test('a keyless build reports the code as sent rather than failing',
-        () async {
-      // Nothing passes a Supabase key to the test binary, so the repository
-      // short-circuits and the screens stay walkable.
-      final bloc = SessionBloc()..add(const OtpRequested());
-      final state =
-          await bloc.stream.firstWhere((s) => !s.isSendingOtp);
+    test('requesting a code for a real number reports it sent', () async {
+      final bloc = SessionBloc()
+        ..add(const SessionPhoneChanged('9876543210'))
+        ..add(const OtpRequested());
+      final state = await bloc.stream.firstWhere((s) =>
+          s.status == SessionStatus.otpSent ||
+          s.status == SessionStatus.failure);
 
       expect(state.status, SessionStatus.otpSent);
       expect(state.errorMessage, isNull);
+      await bloc.close();
+    });
+
+    test("a number the backend rejects surfaces the server's wording",
+        () async {
+      // No number has been entered, so the demo backend 422s rather than
+      // pretending to send.
+      final bloc = SessionBloc()..add(const OtpRequested());
+      final state = await bloc.stream.firstWhere((s) => !s.isSendingOtp);
+
+      expect(state.status, SessionStatus.failure);
+      expect(state.errorMessage, 'Invalid phone number');
+      await bloc.close();
+    });
+
+    test('the demo code signs in and anything else does not', () async {
+      final bloc = SessionBloc()
+        ..add(const SessionPhoneChanged('9876543210'))
+        ..add(const OtpSubmitted('000000'));
+      final state = await bloc.stream.firstWhere((s) =>
+          s.status == SessionStatus.authenticated ||
+          s.status == SessionStatus.failure);
+      expect(state.status, SessionStatus.failure);
+      expect(state.errorMessage, 'That code is not right');
+
+      bloc.add(const OtpSubmitted(DemoBackend.demoOtp));
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.authenticated);
+      expect(bloc.isSignedIn, isTrue);
       await bloc.close();
     });
 
