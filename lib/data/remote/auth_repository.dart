@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../repositories.dart';
 import 'supabase_service.dart';
 
 /// The phone-OTP sign-in flow, plus the profile row that belongs to it.
@@ -9,7 +10,7 @@ import 'supabase_service.dart';
 /// > Phone for live codes. Until one is set up, add the number under
 /// Authentication > Users as a test phone with a fixed OTP, or the app's
 /// `demoMode` path lets the UI through without a server round-trip.
-class AuthRepository {
+class AuthRepository implements AuthSource {
   const AuthRepository();
 
   /// True when codes can actually be sent. When false the auth screens stay
@@ -18,10 +19,14 @@ class AuthRepository {
 
   User? get currentUser => SupabaseService.currentUser;
 
+  @override
+  bool get isSignedIn => SupabaseService.isSignedIn;
+
   Stream<AuthState> get onAuthStateChange =>
       SupabaseService.client.auth.onAuthStateChange;
 
   /// E.164, which is the only format Supabase accepts: `+919876543210`.
+  @override
   String formatPhone(String countryCode, String number) {
     final digits = number.replaceAll(RegExp(r'\D'), '');
     final code = countryCode.replaceAll(RegExp(r'[^\d+]'), '');
@@ -29,6 +34,7 @@ class AuthRepository {
   }
 
   /// Sends the SMS code. Returns null on success, or a message to show.
+  @override
   Future<String?> sendOtp({
     required String countryCode,
     required String phone,
@@ -49,6 +55,7 @@ class AuthRepository {
   }
 
   /// Verifies the code. Returns null on success, or a message to show.
+  @override
   Future<String?> verifyOtp({
     required String countryCode,
     required String phone,
@@ -72,6 +79,7 @@ class AuthRepository {
   }
 
   /// Reads the signed-in user's profile row, or null when there is none.
+  @override
   Future<Map<String, dynamic>?> fetchProfile() async {
     final user = currentUser;
     if (user == null) return null;
@@ -89,6 +97,7 @@ class AuthRepository {
   }
 
   /// Writes the fields the app owns. Silently no-ops when signed out.
+  @override
   Future<void> saveProfile({
     String? fullName,
     String? role,
@@ -112,6 +121,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<void> signOut() async {
     if (!isLive) return;
     try {

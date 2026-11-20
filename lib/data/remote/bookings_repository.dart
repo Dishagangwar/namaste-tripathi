@@ -1,18 +1,20 @@
 import 'package:flutter/foundation.dart';
 
 import '../models.dart';
+import '../repositories.dart';
 import 'mappers.dart';
 import 'supabase_service.dart';
 
 /// The signed-in user's bookings. Rows are owner-scoped by RLS, so no query
 /// here needs to filter by user id — the database does it.
-class BookingsRepository {
+class BookingsRepository implements BookingsSource {
   const BookingsRepository();
 
   bool get isLive => SupabaseService.isReady && SupabaseService.isSignedIn;
 
   /// Newest first. Returns null when there is nothing to read from, which
   /// tells the caller to keep whatever it already has.
+  @override
   Future<List<Booking>?> fetch() async {
     if (!isLive) return null;
     try {
@@ -32,6 +34,7 @@ class BookingsRepository {
 
   /// Inserts a booking and returns the stored row (with its database id), or
   /// null when offline — the caller keeps its local copy either way.
+  @override
   Future<Booking?> add(Booking booking) async {
     final userId = SupabaseService.currentUser?.id;
     if (!isLive || userId == null) return null;

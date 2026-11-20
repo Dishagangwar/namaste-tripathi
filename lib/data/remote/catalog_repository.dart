@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../mock_data.dart';
 import '../models.dart';
+import '../repositories.dart';
 import 'mappers.dart';
 import 'supabase_service.dart';
 
@@ -45,7 +46,7 @@ class CatalogData {
 /// Reads only — the catalogue tables grant `select` to anon and authenticated
 /// and nothing else, so content is edited in the dashboard or with a
 /// service-role key, never from a phone.
-class CatalogRepository {
+class CatalogRepository implements CatalogSource {
   const CatalogRepository();
 
   static const _restaurantColumns =
@@ -54,6 +55,7 @@ class CatalogRepository {
 
   /// Fetches the whole catalogue. Returns the bundled catalogue if Supabase
   /// is not configured, is unreachable, or returns nothing usable.
+  @override
   Future<CatalogData> fetch() async {
     if (!SupabaseService.isReady) return CatalogData.bundled();
 

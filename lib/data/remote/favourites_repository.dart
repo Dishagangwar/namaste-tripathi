@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 
+import '../repositories.dart';
 import 'supabase_service.dart';
 
 /// Saved properties and restaurants, one row per saved item.
-class FavouritesRepository {
+class FavouritesRepository implements FavouritesSource {
   const FavouritesRepository();
 
   static const propertyType = 'property';
@@ -13,6 +14,7 @@ class FavouritesRepository {
 
   /// Returns `{'property': {...ids}, 'restaurant': {...ids}}`, or null when
   /// there is nothing to read from.
+  @override
   Future<Map<String, Set<String>>?> fetch() async {
     if (!isLive) return null;
     try {
@@ -37,6 +39,7 @@ class FavouritesRepository {
     }
   }
 
+  @override
   Future<void> add(String itemType, String itemId) async {
     final userId = SupabaseService.currentUser?.id;
     if (!isLive || userId == null) return;
@@ -52,6 +55,7 @@ class FavouritesRepository {
     }
   }
 
+  @override
   Future<void> remove(String itemType, String itemId) async {
     if (!isLive) return;
     try {
