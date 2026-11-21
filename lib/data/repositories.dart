@@ -52,3 +52,23 @@ abstract interface class AuthSource {
 
   Future<void> signOut();
 }
+
+/// The service tiles, filter chips, saved addresses, ride classes and
+/// editorial copy. Null means fall back to the bundled taxonomy.
+abstract interface class ConfigSource {
+  Future<AppConfig?> fetch();
+}
+
+abstract interface class OrdersSource {
+  /// Null means there was nothing to read from -- keep what is on screen.
+  Future<List<FoodOrder>?> fetch();
+
+  /// Returns the stored order, carrying the id and reference the server
+  /// assigned, or null when it could not be saved.
+  Future<FoodOrder?> place(FoodOrder order);
+}
+
+abstract interface class RidesSource {
+  Future<List<Ride>?> fetch();
+  Future<Ride?> book(Ride ride);
+}
