@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/bookings/bookings_bloc.dart';
 import '../../bloc/favourites/favourites_bloc.dart';
+import '../../bloc/orders/orders_bloc.dart';
+import '../../bloc/rides/rides_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -77,6 +79,8 @@ class _OtpScreenState extends State<OtpScreen> {
           context.read<SessionBloc>().add(const SessionProfileRequested());
           context.read<BookingsBloc>().add(const BookingsRequested());
           context.read<FavouritesBloc>().add(const FavouritesRequested());
+          context.read<OrdersBloc>().add(const OrdersRequested());
+          context.read<RidesBloc>().add(const RidesRequested());
         }
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const RoleScreen()),

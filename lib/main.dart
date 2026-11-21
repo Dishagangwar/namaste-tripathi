@@ -5,7 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/bookings/bookings_bloc.dart';
 import 'bloc/cart/cart_bloc.dart';
 import 'bloc/catalog/catalog_bloc.dart';
+import 'bloc/config/config_bloc.dart';
 import 'bloc/favourites/favourites_bloc.dart';
+import 'bloc/orders/orders_bloc.dart';
+import 'bloc/rides/rides_bloc.dart';
 import 'bloc/session/session_bloc.dart';
 import 'core/theme.dart';
 import 'data/remote/supabase_service.dart';
@@ -35,12 +38,21 @@ class NamasteTripathiApp extends StatelessWidget {
         BlocProvider(create: (_) => CartBloc()),
         BlocProvider(create: (_) => FavouritesBloc()),
         BlocProvider(create: (_) => BookingsBloc()),
+        BlocProvider(create: (_) => OrdersBloc()),
+        BlocProvider(create: (_) => RidesBloc()),
         // lazy: false matters here -- a lazy bloc would not be built until
         // the home screen first read it, so the fetch would start after
         // onboarding rather than during it.
         BlocProvider(
           lazy: false,
           create: (_) => CatalogBloc()..add(const CatalogRequested()),
+        ),
+        // The taxonomy is read by the very first screens and is not
+        // user-specific, so it loads alongside the catalogue rather than
+        // waiting for sign-in.
+        BlocProvider(
+          lazy: false,
+          create: (_) => ConfigBloc()..add(const ConfigRequested()),
         ),
       ],
       child: MaterialApp(
