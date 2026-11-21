@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../mock_data.dart';
 import '../models.dart';
 import '../repositories.dart';
 import '../remote/mappers.dart';
@@ -244,5 +245,81 @@ class ApiAuthRepository implements AuthSource {
       // Signing out locally matters more than telling the server.
     }
     _signedIn = false;
+  }
+}
+
+class ApiConfigRepository implements ConfigSource {
+  ApiConfigRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<AppConfig?> fetch() async {
+    try {
+      final row = await client.getObject('/config');
+      if (row == null) return null;
+      // Parsed against the bundled taxonomy, so a partial payload fills in
+      // field by field rather than blanking a screen.
+      return appConfigFromRow(row, kBundledConfig);
+    } catch (error) {
+      debugPrint('API: config fetch failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+}
+
+class ApiOrdersRepository implements OrdersSource {
+  ApiOrdersRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<List<FoodOrder>?> fetch() async {
+    try {
+      final rows = await client.getList('/orders');
+      return [for (final row in rows) orderFromRow(row)];
+    } catch (error) {
+      debugPrint('API: orders fetch failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+
+  @override
+  Future<FoodOrder?> place(FoodOrder order) async {
+    try {
+      final row = await client.post('/orders', body: orderToRow(order));
+      return row == null ? null : orderFromRow(row);
+    } catch (error) {
+      debugPrint('API: order failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+}
+
+class ApiRidesRepository implements RidesSource {
+  ApiRidesRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<List<Ride>?> fetch() async {
+    try {
+      final rows = await client.getList('/rides');
+      return [for (final row in rows) rideFromRow(row)];
+    } catch (error) {
+      debugPrint('API: rides fetch failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+
+  @override
+  Future<Ride?> book(Ride ride) async {
+    try {
+      final row = await client.post('/rides', body: rideToRow(ride));
+      return row == null ? null : rideFromRow(row);
+    } catch (error) {
+      debugPrint('API: ride booking failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
   }
 }
