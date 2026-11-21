@@ -5,7 +5,10 @@ import 'api/api_repositories.dart';
 import 'remote/auth_repository.dart';
 import 'remote/bookings_repository.dart';
 import 'remote/catalog_repository.dart';
+import 'remote/config_repository.dart';
 import 'remote/favourites_repository.dart';
+import 'remote/orders_repository.dart';
+import 'remote/rides_repository.dart';
 import 'remote/supabase_service.dart';
 import 'repositories.dart';
 
@@ -70,6 +73,15 @@ class Backend {
 
   static AuthSource auth() =>
       isDemo ? ApiAuthRepository(client) : const AuthRepository();
+
+  static ConfigSource config() =>
+      isDemo ? ApiConfigRepository(client) : const ConfigRepository();
+
+  static OrdersSource orders() =>
+      isDemo ? ApiOrdersRepository(client) : const OrdersRepository();
+
+  static RidesSource rides() =>
+      isDemo ? ApiRidesRepository(client) : const RidesRepository();
 
   /// Drops cached state so a later call rebuilds against the current mode.
   @visibleForTesting
