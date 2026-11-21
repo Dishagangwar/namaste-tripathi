@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../icon_registry.dart';
 import '../mock_data.dart';
 import '../models.dart';
+import '../remote/mappers.dart' show orderStatusToWire;
 
 /// The payloads the demo backend serves.
 ///
@@ -146,6 +147,73 @@ class DemoDataset {
         'reference': b.reference,
       };
 
+  static Map<String, dynamic> category(
+    ServiceCategory c, {
+    bool isWide = false,
+  }) =>
+      {
+        'id': c.id,
+        'label': c.label,
+        'icon': _iconName(c.icon),
+        'is_wide': isWide,
+      };
+
+  static Map<String, dynamic> savedPlace(SavedPlace p) => {
+        'id': p.id,
+        'icon': _iconName(p.icon),
+        'label': p.label,
+        'address': p.address,
+      };
+
+  static Map<String, dynamic> rideOption(RideOption r) => {
+        'id': r.id,
+        'title': r.title,
+        'subtitle': r.subtitle,
+        'icon': _iconName(r.icon),
+        'color': _hex(r.color),
+        'eta': r.eta,
+        'price_per_km': r.pricePerKm,
+      };
+
+  static Map<String, dynamic> orderLine(OrderLine l) => {
+        'item_id': l.itemId,
+        'name': l.name,
+        'quantity': l.quantity,
+        'price': l.price,
+      };
+
+  static Map<String, dynamic> order(FoodOrder o) => {
+        'id': o.id,
+        'restaurant_id': o.restaurantId,
+        'restaurant_name': o.restaurantName,
+        'image': o.image,
+        'lines': o.lines.map(orderLine).toList(),
+        'subtotal': o.subtotal,
+        'delivery_fee': o.deliveryFee,
+        'taxes': o.taxes,
+        'discount': o.discount,
+        'total': o.total,
+        'payment_method': o.paymentMethod,
+        'coupon_code': o.couponCode,
+        'instructions': o.instructions,
+        'status': orderStatusToWire(o.status),
+        'reference': o.reference,
+        'created_at': o.placedAt?.toIso8601String(),
+      };
+
+  static Map<String, dynamic> ride(Ride r) => {
+        'id': r.id,
+        'option_id': r.optionId,
+        'ride_type': r.rideType,
+        'from_address': r.fromAddress,
+        'to_address': r.toAddress,
+        'distance_km': r.distanceKm,
+        'fare': r.fare,
+        'eta': r.eta,
+        'status': r.status.name,
+        'reference': r.reference,
+      };
+
   static List<Map<String, dynamic>> get restaurants =>
       kRestaurants.map(restaurant).toList();
   static List<Map<String, dynamic>> get hotels => kHotels.map(hotel).toList();
@@ -157,4 +225,62 @@ class DemoDataset {
   static List<Map<String, dynamic>> get coupons => kCoupons.map(coupon).toList();
   static List<Map<String, dynamic>> get bookings =>
       kBookings.map(booking).toList();
+
+  /// The whole `/config` payload. The wide service tile rides in the same
+  /// list as the grid ones, flagged -- one table, one array, as a real
+  /// backend would serve it.
+  static Map<String, dynamic> get config => {
+        'categories': [
+          for (final c in kCategories) category(c),
+          category(kWideCategory, isWide: true),
+        ],
+        'saved_places': kSavedPlaces.map(savedPlace).toList(),
+        'ride_options': kRideOptions.map(rideOption).toList(),
+        'filters': {
+          FilterGroup.cuisine: kCuisineFilters,
+          FilterGroup.hotel: kHotelFilters,
+          FilterGroup.property: kPropertyFilters,
+          FilterGroup.provider: kProviderFilters,
+        },
+        'traveler_tip': kTravelerTip,
+      };
+
+  /// A little order history, so the list is not empty on a fresh install.
+  static List<Map<String, dynamic>> get orders => [
+        order(FoodOrder(
+          id: 'od1',
+          restaurantId: 'r1',
+          restaurantName: kRestaurants.first.name,
+          image: kRestaurants.first.image,
+          lines: const [
+            OrderLine(
+                itemId: 'm1', name: 'Paneer Butter Masala', quantity: 1, price: 320),
+            OrderLine(itemId: 'm2', name: 'Garlic Naan', quantity: 2, price: 60),
+          ],
+          subtotal: 440,
+          deliveryFee: 50,
+          taxes: 40,
+          discount: 0,
+          total: 530,
+          paymentMethod: 'gpay',
+          status: OrderStatus.delivered,
+          reference: '#NT-884120',
+          placedAt: DateTime(2026, 11, 14, 20, 35),
+        )),
+      ];
+
+  static List<Map<String, dynamic>> get rides => [
+        ride(const Ride(
+          id: 'rd1',
+          optionId: 'bike',
+          rideType: 'Bike taxi',
+          fromAddress: 'Diya Green City, Rajnagar Extension',
+          toAddress: 'Sector 62, Noida \u2022 Block B',
+          distanceKm: 7.4,
+          fare: 74,
+          eta: '3 min away',
+          status: RideStatus.completed,
+          reference: '#RD-552018',
+        )),
+      ];
 }

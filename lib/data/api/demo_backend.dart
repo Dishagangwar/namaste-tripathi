@@ -20,7 +20,9 @@ class DemoBackend extends Interceptor {
     this.failureRate = 0,
     Random? random,
   })  : _random = random ?? Random(),
-        _bookings = [...DemoDataset.bookings];
+        _bookings = [...DemoDataset.bookings],
+        _orders = [...DemoDataset.orders],
+        _rides = [...DemoDataset.rides];
 
   /// Simulated round trip. Zero makes tests instant.
   final Duration latency;
@@ -32,6 +34,8 @@ class DemoBackend extends Interceptor {
 
   /// Mutable so a booking POSTed in one screen is visible to the next GET.
   final List<Map<String, dynamic>> _bookings;
+  final List<Map<String, dynamic>> _orders;
+  final List<Map<String, dynamic>> _rides;
   final Set<String> _favouriteProperties = {'pr6', 'pr4', 'pr2'};
   final Set<String> _favouriteRestaurants = {'r1'};
 
@@ -161,6 +165,55 @@ class DemoBackend extends Interceptor {
         _bookings.insert(0, stored);
         return _DemoResponse(201, stored);
 
+      // Taxonomy rather than catalogue: service tiles, filter chips, saved
+      // addresses, ride classes and editorial copy. One request because it
+      // is all read at startup and none of it is user-specific.
+      case 'GET /config':
+        return _DemoResponse(200, DemoDataset.config);
+
+      // Orders and rides are the user's own records, so they sit behind
+      // sign-in the way the owner-scoped Supabase tables do.
+      case 'GET /orders':
+        if (!_signedIn) return _DemoResponse(401, {'message': 'Not signed in'});
+        return _DemoResponse(200, List<Map<String, dynamic>>.from(_orders));
+
+      case 'POST /orders':
+        if (!_signedIn) return _DemoResponse(401, {'message': 'Not signed in'});
+        final lines = body['lines'];
+        if (lines is! List || lines.isEmpty) {
+          return _DemoResponse(422, {'message': 'An order needs at least one item'});
+        }
+        final stored = {
+          ...body,
+          'id': _id('od'),
+          'reference': _reference('NT'),
+          'status': 'placed',
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        _orders.insert(0, stored);
+        return _DemoResponse(201, stored);
+
+      case 'GET /rides':
+        if (!_signedIn) return _DemoResponse(401, {'message': 'Not signed in'});
+        return _DemoResponse(200, List<Map<String, dynamic>>.from(_rides));
+
+      case 'POST /rides':
+        if (!_signedIn) return _DemoResponse(401, {'message': 'Not signed in'});
+        final to = body['to_address']?.toString().trim() ?? '';
+        if (to.isEmpty) {
+          return _DemoResponse(422, {'message': 'A ride needs a destination'});
+        }
+        final booked = {
+          ...body,
+          'id': _id('rd'),
+          'reference': _reference('RD'),
+          // A real dispatcher would not have a driver yet either.
+          'status': 'searching',
+          'created_at': DateTime.now().toIso8601String(),
+        };
+        _rides.insert(0, booked);
+        return _DemoResponse(201, booked);
+
       case 'GET /favourites':
         return _DemoResponse(200, {
           'property': _favouriteProperties.toList(),
@@ -178,6 +231,14 @@ class DemoBackend extends Interceptor {
     }
     return null;
   }
+
+  String _id(String prefix) =>
+      '$prefix-${DateTime.now().microsecondsSinceEpoch}';
+
+  /// A human-facing reference, in the same shape as the ones the bundled
+  /// bookings carry.
+  String _reference(String prefix) =>
+      '#$prefix-${100000 + _random.nextInt(900000)}';
 
   Set<String> _setFor(String? type) =>
       type == 'restaurant' ? _favouriteRestaurants : _favouriteProperties;
