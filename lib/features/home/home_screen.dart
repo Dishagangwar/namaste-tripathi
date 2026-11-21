@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/catalog/catalog_bloc.dart';
+import '../../bloc/config/config_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 import '../food/restaurant_detail_screen.dart';
 import '../hotels/hotel_detail_screen.dart';
@@ -113,7 +113,7 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            for (final place in kSavedPlaces)
+            for (final place in context.watch<ConfigBloc>().state.savedPlaces)
               ListTile(
                 leading: SoftIconBox(place.icon, size: 42, iconSize: 20),
                 title: Text(place.label,
@@ -122,9 +122,8 @@ class _TopBar extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12.5, color: AppColors.muted)),
                 onTap: () {
-                  context
-                      .read<SessionBloc>()
-                      .add(SessionLocationChanged(place.label, place.address));
+                  context.read<SessionBloc>().add(
+                      SessionLocationChanged(place.label, place.address));
                   Navigator.pop(context);
                 },
               ),
@@ -323,6 +322,8 @@ class _CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final config = context.watch<ConfigBloc>().state;
+
     return Column(
       children: [
         GridView.count(
@@ -333,7 +334,7 @@ class _CategoryGrid extends StatelessWidget {
           crossAxisSpacing: 14,
           childAspectRatio: 1.22,
           children: [
-            for (final c in kCategories)
+            for (final c in config.categories)
               AppCard(
                 onTap: () => onOpen(c.id),
                 padding: const EdgeInsets.all(12),
@@ -355,16 +356,17 @@ class _CategoryGrid extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         AppCard(
-          onTap: () => onOpen('providers'),
+          onTap: () => onOpen(config.wideCategory.id),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SoftIconBox(kWideCategory.icon, size: 44, iconSize: 21),
+              SoftIconBox(config.wideCategory.icon, size: 44, iconSize: 21),
               const SizedBox(width: 16),
-              const Text(
-                'Service Providers',
-                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+              Text(
+                config.wideCategory.label,
+                style: const TextStyle(
+                    fontSize: 15.5, fontWeight: FontWeight.w700),
               ),
             ],
           ),

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/bookings/bookings_bloc.dart';
+import '../../bloc/config/config_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 
 class BookingsScreen extends StatefulWidget {
@@ -76,18 +76,18 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               size: 21, color: AppColors.primary),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Traveler Tip',
+                              const Text('Traveler Tip',
                                   style: TextStyle(
                                       fontSize: 15.5,
                                       fontWeight: FontWeight.w700)),
-                              SizedBox(height: 7),
+                              const SizedBox(height: 7),
                               Text(
-                                kTravelerTip,
-                                style: TextStyle(
+                                context.watch<ConfigBloc>().state.travelerTip,
+                                style: const TextStyle(
                                     fontSize: 13,
                                     color: AppColors.muted,
                                     height: 1.6),

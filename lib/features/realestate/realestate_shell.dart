@@ -5,9 +5,9 @@ import '../../bloc/catalog/catalog_bloc.dart';
 import '../../bloc/favourites/favourites_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 
+import '../../bloc/config/config_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../../data/models.dart';
 import '../shell/main_shell.dart';
 import 'property_detail_screen.dart';
@@ -126,7 +126,7 @@ class _ExploreTabState extends State<_ExploreTab> {
             ),
           ),
           FilterChipsRow(
-            items: kPropertyFilters,
+            items: context.watch<ConfigBloc>().state.filtersFor(FilterGroup.property),
             selected: _filter,
             onSelected: (v) => setState(() => _filter = v),
           ),

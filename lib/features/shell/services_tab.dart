@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/config/config_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../../data/mock_data.dart';
 import '../biketaxi/bike_taxi_screen.dart';
 import '../food/food_list_screen.dart';
 import '../hotels/hotels_list_screen.dart';
@@ -43,7 +44,8 @@ class _ServicesHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shell = MainShell.of(context);
-    final all = [...kCategories, kWideCategory];
+    final config = context.watch<ConfigBloc>().state;
+    final all = [...config.categories, config.wideCategory];
 
     return SafeArea(
       bottom: false,
