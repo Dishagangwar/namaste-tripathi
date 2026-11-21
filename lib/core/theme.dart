@@ -151,3 +151,18 @@ String rupees(num value, {bool decimals = false}) {
   final tail = parts.length > 1 ? '.${parts[1]}' : '';
   return '${neg ? '-' : ''}₹$grouped$tail';
 }
+
+const kMonthNames = <String>[
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// `Nov 21, 2026 • 8:35 PM` — the shape the booking rows use for their
+/// `when` label.
+String formatWhen(DateTime at) {
+  final hour12 = at.hour % 12 == 0 ? 12 : at.hour % 12;
+  final minute = at.minute.toString().padLeft(2, '0');
+  final meridiem = at.hour < 12 ? 'AM' : 'PM';
+  return '${kMonthNames[at.month - 1]} ${at.day}, ${at.year} • '
+      '$hour12:$minute $meridiem';
+}

@@ -1,46 +1,29 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/orders/orders_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../../data/models.dart';
 
 const _stages = ['Confirmed', 'Preparing', 'Out for delivery'];
 
 class OrderSuccessScreen extends StatefulWidget {
-  const OrderSuccessScreen({
-    super.key,
-    required this.restaurantName,
-    required this.image,
-    required this.lines,
-    required this.subtotal,
-    required this.deliveryFee,
-    required this.taxes,
-    required this.discount,
-    required this.couponCode,
-    required this.total,
-  });
+  const OrderSuccessScreen({super.key, required this.order});
 
-  final String restaurantName;
-  final String image;
-  final List<String> lines;
-  final double subtotal;
-  final double deliveryFee;
-  final double taxes;
-  final double discount;
-  final String? couponCode;
-  final double total;
+  /// The order as it was placed. The stored copy is read back from
+  /// [OrdersBloc] during build, so the reference number on screen is the
+  /// one the server assigned once the write lands.
+  final FoodOrder order;
 
   @override
   State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
 }
 
 class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
-  late final String _orderId =
-      '#AH-${(Random().nextInt(899999) + 100000)}';
   int _stage = 1;
   Timer? _timer;
 
@@ -62,6 +45,13 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionBloc>().state;
+
+    // The stored order, if the write has landed; otherwise the optimistic
+    // copy this screen was pushed with.
+    final orders = context.watch<OrdersBloc>().state.items;
+    final order = orders
+        .where((o) => o.id == widget.order.id)
+        .followedBy([widget.order]).first;
 
     return Scaffold(
       body: SafeArea(
@@ -96,7 +86,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your feast from ${widget.restaurantName} is on its way.',
+              'Your feast from ${order.restaurantName} is on its way.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 14, color: AppColors.muted, height: 1.5),
@@ -111,7 +101,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'ORDER ID: $_orderId',
+                  'ORDER ID: ${order.reference ?? 'confirming…'}',
                   style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -204,7 +194,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                       SizedBox(
                         height: 96,
                         width: double.infinity,
-                        child: AppImage(widget.image),
+                        child: AppImage(order.image),
                       ),
                       Positioned.fill(
                         child: DecoratedBox(
@@ -224,7 +214,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                         left: 16,
                         bottom: 12,
                         child: Text(
-                          widget.restaurantName,
+                          order.restaurantName,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
@@ -238,34 +228,34 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        for (final l in widget.lines)
+                        for (final l in order.lines)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                l,
+                                l.label,
                                 style: const TextStyle(
                                     fontSize: 13.5, color: AppColors.muted),
                               ),
                             ),
                           ),
                         const Divider(height: 24),
-                        _Row('Item Total', rupees(widget.subtotal)),
+                        _Row('Item Total', rupees(order.subtotal)),
                         const SizedBox(height: 8),
                         _Row(
                           'Delivery Fee',
-                          widget.deliveryFee == 0
+                          order.deliveryFee == 0
                               ? 'FREE'
-                              : rupees(widget.deliveryFee),
+                              : rupees(order.deliveryFee),
                         ),
                         const SizedBox(height: 8),
-                        _Row('Taxes & Charges', rupees(widget.taxes)),
-                        if (widget.discount > 0) ...[
+                        _Row('Taxes & Charges', rupees(order.taxes)),
+                        if (order.discount > 0) ...[
                           const SizedBox(height: 8),
                           _Row(
-                            'Coupon Discount (${widget.couponCode})',
-                            '-${rupees(widget.discount)}',
+                            'Coupon Discount (${order.couponCode})',
+                            '-${rupees(order.discount)}',
                             color: AppColors.success,
                           ),
                         ],
@@ -278,7 +268,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                                     fontSize: 15.5,
                                     fontWeight: FontWeight.w700)),
                             Text(
-                              rupees(widget.total),
+                              rupees(order.total),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
