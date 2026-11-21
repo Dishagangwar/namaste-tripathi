@@ -115,16 +115,16 @@ class _TopBar extends StatelessWidget {
             const SizedBox(height: 8),
             for (final place in kSavedPlaces)
               ListTile(
-                leading: SoftIconBox(place.$1, size: 42, iconSize: 20),
-                title: Text(place.$2,
+                leading: SoftIconBox(place.icon, size: 42, iconSize: 20),
+                title: Text(place.label,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(place.$3,
+                subtitle: Text(place.address,
                     style: const TextStyle(
                         fontSize: 12.5, color: AppColors.muted)),
                 onTap: () {
                   context
                       .read<SessionBloc>()
-                      .add(SessionLocationChanged(place.$2, place.$3));
+                      .add(SessionLocationChanged(place.label, place.address));
                   Navigator.pop(context);
                 },
               ),

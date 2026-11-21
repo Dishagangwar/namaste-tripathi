@@ -115,19 +115,19 @@ class _BikeTaxiScreenState extends State<BikeTaxiScreen> {
                   for (final place in kSavedPlaces)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: SoftIconBox(place.$1, size: 40, iconSize: 18),
-                      title: Text(place.$2,
+                      leading: SoftIconBox(place.icon, size: 40, iconSize: 18),
+                      title: Text(place.label,
                           style:
                               const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text(
-                        place.$3,
+                        place.address,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 12.5, color: AppColors.muted),
                       ),
                       onTap: () {
-                        _destination.text = place.$3;
+                        _destination.text = place.address;
                         setState(() {});
                       },
                     ),

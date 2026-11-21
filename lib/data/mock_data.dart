@@ -836,30 +836,83 @@ final kOffers = <Offer>[
 ];
 
 // ---------------------------------------------------------------- bike taxi
-class RideOption {
-  const RideOption(this.title, this.subtitle, this.icon, this.color, this.eta,
-      this.pricePerKm);
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final String eta;
-  final int pricePerKm;
-}
-
+//
+// `RideOption` itself lives in `models.dart`: these are the bundled defaults
+// the app falls back to when `/config` cannot be reached.
 const kRideOptions = <RideOption>[
-  RideOption('Bike taxi', 'Fastest in traffic', Icons.two_wheeler_rounded,
-      Color(0xFF7A4F00), '3 min away', 8),
-  RideOption('E-rickshaw', 'Cheaper and Reliable', Icons.electric_rickshaw,
-      Color(0xFF16A34A), '6 min away', 6),
-  RideOption('Parcel', 'Send Anything', Icons.inventory_2_outlined,
-      Color(0xFFDC2626), '5 min away', 10),
-  RideOption('Cab', 'Comfortable, AC', Icons.local_taxi_rounded,
-      Color(0xFFB45309), '8 min away', 14),
+  RideOption(
+    id: 'bike',
+    title: 'Bike taxi',
+    subtitle: 'Fastest in traffic',
+    icon: Icons.two_wheeler_rounded,
+    color: Color(0xFF7A4F00),
+    eta: '3 min away',
+    pricePerKm: 8,
+  ),
+  RideOption(
+    id: 'erickshaw',
+    title: 'E-rickshaw',
+    subtitle: 'Cheaper and Reliable',
+    icon: Icons.electric_rickshaw,
+    color: Color(0xFF16A34A),
+    eta: '6 min away',
+    pricePerKm: 6,
+  ),
+  RideOption(
+    id: 'parcel',
+    title: 'Parcel',
+    subtitle: 'Send Anything',
+    icon: Icons.inventory_2_outlined,
+    color: Color(0xFFDC2626),
+    eta: '5 min away',
+    pricePerKm: 10,
+  ),
+  RideOption(
+    id: 'cab',
+    title: 'Cab',
+    subtitle: 'Comfortable, AC',
+    icon: Icons.local_taxi_rounded,
+    color: Color(0xFFB45309),
+    eta: '8 min away',
+    pricePerKm: 14,
+  ),
 ];
 
-const kSavedPlaces = <(IconData, String, String)>[
-  (Icons.home_rounded, 'Home', 'Diya Green City, Rajnagar Extension'),
-  (Icons.work_rounded, 'Work', 'Sector 62, Noida • Block B'),
-  (Icons.flight_rounded, 'Airport', 'IGI Terminal 3, New Delhi'),
+const kSavedPlaces = <SavedPlace>[
+  SavedPlace(
+    id: 'home',
+    icon: Icons.home_rounded,
+    label: 'Home',
+    address: 'Diya Green City, Rajnagar Extension',
+  ),
+  SavedPlace(
+    id: 'work',
+    icon: Icons.work_rounded,
+    label: 'Work',
+    address: 'Sector 62, Noida \u2022 Block B',
+  ),
+  SavedPlace(
+    id: 'airport',
+    icon: Icons.flight_rounded,
+    label: 'Airport',
+    address: 'IGI Terminal 3, New Delhi',
+  ),
 ];
+
+// ---------------------------------------------------------------- config
+
+/// The taxonomy the app ships with, used until `/config` answers and
+/// whenever it cannot be reached.
+const kBundledConfig = AppConfig(
+  categories: kCategories,
+  wideCategory: kWideCategory,
+  savedPlaces: kSavedPlaces,
+  rideOptions: kRideOptions,
+  filters: {
+    FilterGroup.cuisine: kCuisineFilters,
+    FilterGroup.hotel: kHotelFilters,
+    FilterGroup.property: kPropertyFilters,
+    FilterGroup.provider: kProviderFilters,
+  },
+  travelerTip: kTravelerTip,
+);
