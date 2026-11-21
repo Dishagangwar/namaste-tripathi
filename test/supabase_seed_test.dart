@@ -46,15 +46,43 @@ void main() {
     expect(unknown, isEmpty, reason: 'icons not in the registry: $unknown');
   });
 
+  /// The config rows live in a migration, not in the seed: `db push
+  /// --include-seed` will not re-run a seed file it has already recorded, so
+  /// rows added to one never reach a database that was seeded before them.
+  final configRows = File(
+    'supabase/migrations/20261121110000_config_rows.sql',
+  ).readAsStringSync();
+
   /// The rows of one `insert into public.<table> ... ;` statement.
   String block(String table) {
-    final start = seed.indexOf('insert into public.$table');
-    expect(start, isNot(-1), reason: 'no seed block for $table');
-    final end = seed.indexOf(';', start);
-    return seed.substring(start, end == -1 ? seed.length : end);
+    final start = configRows.indexOf('insert into public.$table');
+    expect(start, isNot(-1), reason: 'no config block for $table');
+    final end = configRows.indexOf(';', start);
+    return configRows.substring(start, end == -1 ? configRows.length : end);
   }
 
-  group('config seed', () {
+  group('config rows', () {
+    test('they are a migration, so they reach every environment', () {
+      // Being in seed.sql would silently skip any database already seeded.
+      expect(configRows, contains('insert into public.service_categories'));
+      expect(seed, isNot(contains('insert into public.service_categories')));
+    });
+
+    test('every table they write to is created by a migration', () {
+      final schema = migrations.map((f) => f.readAsStringSync()).join('\n');
+      final written = RegExp(r'insert into public\.(\w+)')
+          .allMatches(configRows)
+          .map((m) => m.group(1)!)
+          .toSet();
+
+      expect(written, hasLength(5));
+      final undeclared = written
+          .where((t) => !schema.contains('create table if not exists public.$t'))
+          .toList()
+        ..sort();
+      expect(undeclared, isEmpty, reason: 'tables with no migration: $undeclared');
+    });
+
     test('every icon it names resolves in the registry', () {
       // Icon columns sit at a known position in each table, so each shape
       // is matched rather than every quoted string in the file.
