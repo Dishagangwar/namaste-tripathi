@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:namaste_tripathi/data/icon_registry.dart';
+import 'package:namaste_tripathi/data/mock_data.dart';
+import 'package:namaste_tripathi/data/models.dart';
 
 /// The seed is hand-written SQL, so nothing in the build checks it against
 /// the app. These tests do: every asset it names has to be bundled, and
@@ -42,6 +44,97 @@ void main() {
     final unknown = names.where((n) => !kIconRegistry.containsKey(n)).toList()
       ..sort();
     expect(unknown, isEmpty, reason: 'icons not in the registry: $unknown');
+  });
+
+  /// The rows of one `insert into public.<table> ... ;` statement.
+  String block(String table) {
+    final start = seed.indexOf('insert into public.$table');
+    expect(start, isNot(-1), reason: 'no seed block for $table');
+    final end = seed.indexOf(';', start);
+    return seed.substring(start, end == -1 ? seed.length : end);
+  }
+
+  group('config seed', () {
+    test('every icon it names resolves in the registry', () {
+      // Icon columns sit at a known position in each table, so each shape
+      // is matched rather than every quoted string in the file.
+      final icons = <String>{
+        // ('id', 'label', 'icon', is_wide, n)
+        ...RegExp(r"\('[\w-]+',\s*'[^']*',\s*'([a-z0-9_]+)',\s*(?:true|false)")
+            .allMatches(block('service_categories'))
+            .map((m) => m.group(1)!),
+        // ('id', 'icon', 'label', 'address', n)
+        ...RegExp(r"\('[\w-]+',\s*'([a-z0-9_]+)',\s*'[^']*',\s*'[^']*',\s*\d+\)")
+            .allMatches(block('saved_places'))
+            .map((m) => m.group(1)!),
+        // ('id', 'title', 'subtitle', 'icon', '#RRGGBB', ...)
+        ...RegExp(r"\('[\w-]+',\s*'[^']*',\s*'[^']*',\s*'([a-z0-9_]+)',\s*'#")
+            .allMatches(block('ride_options'))
+            .map((m) => m.group(1)!),
+      };
+
+      expect(icons, hasLength(greaterThanOrEqualTo(9)));
+      final unknown = icons.where((n) => !kIconRegistry.containsKey(n)).toList()
+        ..sort();
+      expect(unknown, isEmpty, reason: 'icons not in the registry: $unknown');
+    });
+
+    test('its filter chips match the bundled ones exactly', () {
+      // The two have to agree: a build falls back to the bundled lists when
+      // the backend is unreachable, and the chips must not shuffle.
+      List<String> seeded(String group) => RegExp(
+            r"\('GROUP',\s*'([^']*)',\s*\d+\)".replaceFirst('GROUP', group),
+          ).allMatches(block('filter_options')).map((m) => m.group(1)!).toList();
+
+      expect(seeded(FilterGroup.cuisine), kCuisineFilters);
+      expect(seeded(FilterGroup.hotel), kHotelFilters);
+      expect(seeded(FilterGroup.property), kPropertyFilters);
+      expect(seeded(FilterGroup.provider), kProviderFilters);
+    });
+
+    test('its service tiles match the bundled ones, wide tile included', () {
+      final rows = RegExp(r"\('([\w-]+)',\s*'([^']*)',\s*'[a-z0-9_]+',\s*(true|false)")
+          .allMatches(block('service_categories'))
+          .toList();
+
+      final grid = [
+        for (final m in rows)
+          if (m.group(3) == 'false') (m.group(1)!, m.group(2)!),
+      ];
+      final wide = [
+        for (final m in rows)
+          if (m.group(3) == 'true') (m.group(1)!, m.group(2)!),
+      ];
+
+      expect(grid, [for (final c in kCategories) (c.id, c.label)]);
+      expect(wide, [(kWideCategory.id, kWideCategory.label)]);
+    });
+
+    test('its ride options match the bundled ids and fares', () {
+      final rows = RegExp(
+        r"\('([\w-]+)',\s*'([^']*)',\s*'[^']*',\s*'[a-z0-9_]+',\s*'#[0-9A-Fa-f]{6}',\s*'[^']*',\s*(\d+),",
+      ).allMatches(block('ride_options')).toList();
+
+      expect(
+        [for (final m in rows) (m.group(1)!, m.group(2)!, int.parse(m.group(3)!))],
+        [for (final r in kRideOptions) (r.id, r.title, r.pricePerKm)],
+      );
+    });
+
+    test('its traveler tip matches the bundled copy', () {
+      expect(block('app_settings'), contains(kTravelerTip));
+    });
+
+    test('its saved places match the bundled ids and addresses', () {
+      final rows = RegExp(r"\('([\w-]+)',\s*'[a-z0-9_]+',\s*'([^']*)',\s*'([^']*)',")
+          .allMatches(block('saved_places'))
+          .toList();
+
+      expect(
+        [for (final m in rows) (m.group(1)!, m.group(2)!, m.group(3)!)],
+        [for (final p in kSavedPlaces) (p.id, p.label, p.address)],
+      );
+    });
   });
 
   test('every table the seed writes to is created by a migration', () {

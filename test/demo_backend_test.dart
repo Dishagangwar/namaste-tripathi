@@ -128,6 +128,186 @@ void main() {
     });
   });
 
+  group('config', () {
+    test('serves the whole taxonomy', () async {
+      final config = await ApiConfigRepository(client).fetch();
+
+      expect(config, isNotNull);
+      // Four grid tiles plus the wide one, split apart by the parser.
+      expect(config!.categories, hasLength(4));
+      expect(config.wideCategory.id, 'providers');
+      expect(config.savedPlaces, hasLength(3));
+      expect(config.rideOptions, hasLength(4));
+      expect(config.travelerTip, isNotEmpty);
+    });
+
+    test('filter groups come back keyed as the screens ask for them', () async {
+      final config = await ApiConfigRepository(client).fetch();
+
+      expect(config!.filtersFor(FilterGroup.cuisine).first, 'All');
+      expect(config.filtersFor(FilterGroup.hotel), contains('Heritage'));
+      expect(config.filtersFor(FilterGroup.property), contains('For Rent'));
+      expect(config.filtersFor(FilterGroup.provider), contains('Plumbers'));
+      // A group nobody serves still yields a usable chip row.
+      expect(config.filtersFor('nope'), ['All']);
+    });
+
+    test('icons and colours survive the trip', () async {
+      final config = await ApiConfigRepository(client).fetch();
+
+      final bike = config!.rideOptions.firstWhere((r) => r.id == 'bike');
+      expect(bike.icon.codePoint, isNonZero);
+      expect(bike.color.toARGB32(), 0xFF7A4F00);
+      expect(bike.pricePerKm, 8);
+      // 8 x 7.4 = 59.2, rounded, plus the flag-down charge.
+      expect(bike.fareFor(7.4), 59 + RideOption.baseFare);
+    });
+
+    test('is readable before anyone signs in', () async {
+      // The home screen needs its tiles during onboarding.
+      expect(await ApiConfigRepository(client).fetch(), isNotNull);
+    });
+  });
+
+  group('orders', () {
+    const order = FoodOrder(
+      id: 'local',
+      restaurantId: 'r1',
+      restaurantName: 'The Obsidian Grill',
+      image: 'assets/images/restaurant1.jpg',
+      lines: [
+        OrderLine(itemId: 'm1', name: 'Truffle Pasta', quantity: 2, price: 540),
+      ],
+      subtotal: 1080,
+      deliveryFee: 50,
+      taxes: 97,
+      discount: 0,
+      total: 1227,
+      paymentMethod: 'gpay',
+    );
+
+    Future<void> signIn() => ApiAuthRepository(client).verifyOtp(
+          countryCode: '+91',
+          phone: '9876543210',
+          token: DemoBackend.demoOtp,
+        );
+
+    test('placing one is gated on being signed in', () async {
+      expect(await ApiOrdersRepository(client).place(order), isNull);
+      expect(await ApiOrdersRepository(client).fetch(), isNull);
+    });
+
+    test('a placed order comes back with a server id and reference', () async {
+      await signIn();
+      final repo = ApiOrdersRepository(client);
+      final before = await repo.fetch();
+
+      final stored = await repo.place(order);
+      expect(stored, isNotNull);
+      expect(stored!.id, isNot('local'));
+      expect(stored.reference, startsWith('#NT-'));
+      expect(stored.status, OrderStatus.placed);
+      expect(stored.placedAt, isNotNull);
+
+      // The bill is stored as it was, not recomputed.
+      expect(stored.total, 1227);
+      expect(stored.lines.single.label, '2 × Truffle Pasta');
+      expect(stored.itemCount, 2);
+
+      final after = await repo.fetch();
+      expect(after!.length, before!.length + 1);
+      expect(after.first.id, stored.id);
+    });
+
+    test('an order with no lines is refused', () async {
+      await signIn();
+      const empty = FoodOrder(
+        id: 'local',
+        restaurantId: 'r1',
+        restaurantName: 'The Obsidian Grill',
+        image: '',
+        lines: [],
+        subtotal: 0,
+        deliveryFee: 0,
+        taxes: 0,
+        discount: 0,
+        total: 0,
+        paymentMethod: 'cod',
+      );
+
+      expect(await ApiOrdersRepository(client).place(empty), isNull);
+    });
+
+    test('the seeded history parses, on_the_way included', () async {
+      await signIn();
+      final orders = await ApiOrdersRepository(client).fetch();
+
+      expect(orders, isNotEmpty);
+      expect(orders!.last.reference, '#NT-884120');
+      expect(orders.last.status, OrderStatus.delivered);
+    });
+  });
+
+  group('rides', () {
+    const ride = Ride(
+      id: 'local',
+      optionId: 'bike',
+      rideType: 'Bike taxi',
+      fromAddress: 'Diya Green City, Rajnagar Extension',
+      toAddress: 'Sector 62, Noida',
+      distanceKm: 7.4,
+      fare: 74,
+      eta: '3 min away',
+    );
+
+    Future<void> signIn() => ApiAuthRepository(client).verifyOtp(
+          countryCode: '+91',
+          phone: '9876543210',
+          token: DemoBackend.demoOtp,
+        );
+
+    test('booking one is gated on being signed in', () async {
+      expect(await ApiRidesRepository(client).book(ride), isNull);
+    });
+
+    test('a booked ride comes back searching, with a reference', () async {
+      await signIn();
+      final repo = ApiRidesRepository(client);
+      final before = await repo.fetch();
+
+      final booked = await repo.book(ride);
+      expect(booked, isNotNull);
+      expect(booked!.id, isNot('local'));
+      expect(booked.reference, startsWith('#RD-'));
+      // No driver yet, whatever the client asked for.
+      expect(booked.status, RideStatus.searching);
+      expect(booked.fare, 74);
+      expect(booked.distanceKm, 7.4);
+
+      final after = await repo.fetch();
+      expect(after!.length, before!.length + 1);
+    });
+
+    test('a ride with no destination is refused', () async {
+      await signIn();
+      expect(
+        await ApiRidesRepository(client).book(
+          const Ride(
+            id: 'local',
+            optionId: 'bike',
+            rideType: 'Bike taxi',
+            fromAddress: 'Home',
+            toAddress: '   ',
+            distanceKm: 1,
+            fare: 23,
+            eta: '3 min away',
+          ),
+        ),
+        isNull,
+      );
+    });
+  });
+
   test('an unknown route 404s rather than hanging', () async {
     await expectLater(
       client.getList('/nope'),

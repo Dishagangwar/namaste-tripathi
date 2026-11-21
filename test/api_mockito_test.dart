@@ -5,6 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:namaste_tripathi/data/api/api_client.dart';
 import 'package:namaste_tripathi/data/api/api_repositories.dart';
 import 'package:namaste_tripathi/data/models.dart';
+import 'package:namaste_tripathi/data/remote/mappers.dart';
 
 import 'api_mockito_test.mocks.dart';
 
@@ -174,6 +175,178 @@ void main() {
         image: '',
       );
       expect(await ApiBookingsRepository(client).add(local), isNull);
+    });
+  });
+
+  group('ApiConfigRepository', () {
+    test('a partial payload fills in from the bundled taxonomy', () async {
+      // Only the tip and one filter group come back; everything else should
+      // hold its bundled value rather than go blank.
+      when(dio.get<dynamic>('/config')).thenAnswer(
+        (_) async => ok('/config', {
+          'traveler_tip': 'Mind the monsoon.',
+          'filters': {
+            'cuisine': ['All', 'Thali'],
+          },
+        }),
+      );
+
+      final config = await ApiConfigRepository(client).fetch();
+      expect(config!.travelerTip, 'Mind the monsoon.');
+      expect(config.filtersFor(FilterGroup.cuisine), ['All', 'Thali']);
+      // Untouched by the response, so still bundled.
+      expect(config.categories, isNotEmpty);
+      expect(config.rideOptions, isNotEmpty);
+      expect(config.savedPlaces, isNotEmpty);
+    });
+
+    test('a body of the wrong shape yields no config at all', () async {
+      when(dio.get<dynamic>('/config'))
+          .thenAnswer((_) async => ok('/config', const []));
+
+      // null, not a half-built config: the bloc keeps what it has.
+      expect(await ApiConfigRepository(client).fetch(), isNull);
+    });
+
+    test('a failing endpoint is swallowed', () async {
+      when(dio.get<dynamic>('/config')).thenThrow(
+        DioException(
+          requestOptions: opts('/config'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
+
+      expect(await ApiConfigRepository(client).fetch(), isNull);
+    });
+  });
+
+  group('ApiOrdersRepository', () {
+    const local = FoodOrder(
+      id: 'local-7',
+      restaurantId: 'r1',
+      restaurantName: 'The Obsidian Grill',
+      image: 'assets/images/restaurant1.jpg',
+      lines: [
+        OrderLine(itemId: 'm1', name: 'Truffle Pasta', quantity: 1, price: 540),
+      ],
+      subtotal: 540,
+      deliveryFee: 50,
+      taxes: 49,
+      discount: 0,
+      total: 639,
+      paymentMethod: 'gpay',
+      couponCode: 'SAVE20',
+      instructions: ['No onion'],
+    );
+
+    test('posts the order and returns the row the server stamped', () async {
+      when(dio.post<dynamic>('/orders', data: anyNamed('data'))).thenAnswer(
+        (_) async => ok('/orders', {
+          'id': 'server-order-3',
+          'restaurant_name': 'The Obsidian Grill',
+          'total': 639,
+          'status': 'placed',
+          'reference': '#NT-123456',
+          'lines': [
+            {'item_id': 'm1', 'name': 'Truffle Pasta', 'quantity': 1, 'price': 540},
+          ],
+        }),
+      );
+
+      final stored = await ApiOrdersRepository(client).place(local);
+      expect(stored?.id, 'server-order-3');
+      expect(stored?.reference, '#NT-123456');
+
+      final sent = verify(dio.post<dynamic>('/orders', data: captureAnyNamed('data')))
+          .captured
+          .single as Map<String, dynamic>;
+      // The id is the server's to assign.
+      expect(sent.containsKey('id'), isFalse);
+      expect(sent['coupon_code'], 'SAVE20');
+      expect(sent['instructions'], ['No onion']);
+      expect(sent['lines'], hasLength(1));
+      expect((sent['lines'] as List).single, containsPair('quantity', 1));
+    });
+
+    test('on_the_way survives the round trip in both directions', () async {
+      when(dio.get<dynamic>('/orders')).thenAnswer(
+        (_) async => ok('/orders', [
+          {'id': 'o1', 'status': 'on_the_way'},
+        ]),
+      );
+
+      final orders = await ApiOrdersRepository(client).fetch();
+      expect(orders!.single.status, OrderStatus.onTheWay);
+      // The enum name is `onTheWay`, so the wire form cannot be derived
+      // from it -- this is the check that the mapping is explicit.
+      expect(orderStatusToWire(OrderStatus.onTheWay), 'on_the_way');
+    });
+
+    test('a 401 leaves the caller holding its local copy', () async {
+      when(dio.post<dynamic>('/orders', data: anyNamed('data'))).thenThrow(
+        DioException(
+          requestOptions: opts('/orders'),
+          type: DioExceptionType.badResponse,
+          response: Response<dynamic>(
+            requestOptions: opts('/orders'),
+            statusCode: 401,
+            data: {'message': 'Not signed in'},
+          ),
+        ),
+      );
+
+      expect(await ApiOrdersRepository(client).place(local), isNull);
+    });
+  });
+
+  group('ApiRidesRepository', () {
+    const local = Ride(
+      id: 'local-9',
+      optionId: 'bike',
+      rideType: 'Bike taxi',
+      fromAddress: 'Home',
+      toAddress: 'Sector 62, Noida',
+      distanceKm: 7.4,
+      fare: 74,
+      eta: '3 min away',
+    );
+
+    test('posts the ride and returns the row the server stamped', () async {
+      when(dio.post<dynamic>('/rides', data: anyNamed('data'))).thenAnswer(
+        (_) async => ok('/rides', {
+          'id': 'server-ride-2',
+          'option_id': 'bike',
+          'ride_type': 'Bike taxi',
+          'to_address': 'Sector 62, Noida',
+          'distance_km': 7.4,
+          'fare': 74,
+          'status': 'searching',
+          'reference': '#RD-998877',
+        }),
+      );
+
+      final booked = await ApiRidesRepository(client).book(local);
+      expect(booked?.id, 'server-ride-2');
+      expect(booked?.reference, '#RD-998877');
+      expect(booked?.status, RideStatus.searching);
+
+      final sent = verify(dio.post<dynamic>('/rides', data: captureAnyNamed('data')))
+          .captured
+          .single as Map<String, dynamic>;
+      expect(sent.containsKey('id'), isFalse);
+      expect(sent['to_address'], 'Sector 62, Noida');
+      expect(sent['distance_km'], 7.4);
+    });
+
+    test('an unknown status falls back to searching', () async {
+      when(dio.get<dynamic>('/rides')).thenAnswer(
+        (_) async => ok('/rides', [
+          {'id': 'r1', 'status': 'teleporting'},
+        ]),
+      );
+
+      final rides = await ApiRidesRepository(client).fetch();
+      expect(rides!.single.status, RideStatus.searching);
     });
   });
 

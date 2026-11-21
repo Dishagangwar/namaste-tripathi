@@ -112,6 +112,143 @@ void main() {
       expect(restored.location, 'Amalfi, Italy');
     });
 
+    test('an order row round-trips through the insert payload', () {
+      const order = FoodOrder(
+        id: 'local',
+        restaurantId: 'r1',
+        restaurantName: 'The Obsidian Grill',
+        image: 'assets/images/restaurant1.jpg',
+        lines: [
+          OrderLine(itemId: 'm1', name: 'Pasta', quantity: 2, price: 225),
+        ],
+        subtotal: 450,
+        deliveryFee: 50,
+        taxes: 41,
+        discount: 90,
+        total: 451,
+        paymentMethod: 'gpay',
+        couponCode: 'SAVE20',
+        instructions: ['No onion'],
+      );
+
+      final row = orderToRow(order);
+      // The id and user_id are the database's to fill.
+      expect(row.containsKey('id'), isFalse);
+      expect(row.containsKey('user_id'), isFalse);
+
+      final parsed = orderFromRow({...row, 'id': 'srv', 'reference': '#NT-1'});
+      expect(parsed.id, 'srv');
+      expect(parsed.reference, '#NT-1');
+      expect(parsed.restaurantName, 'The Obsidian Grill');
+      expect(parsed.lines.single.quantity, 2);
+      expect(parsed.lines.single.total, 450);
+      expect(parsed.couponCode, 'SAVE20');
+      expect(parsed.instructions, ['No onion']);
+      expect(parsed.total, 451);
+    });
+
+    test('on_the_way is mapped explicitly in both directions', () {
+      // The enum name is `onTheWay`, so neither direction can be derived
+      // from it -- a snake_case assumption would silently fail.
+      expect(orderStatusToWire(OrderStatus.onTheWay), 'on_the_way');
+      expect(orderFromRow({'status': 'on_the_way'}).status,
+          OrderStatus.onTheWay);
+      expect(orderFromRow({'status': 'teleporting'}).status,
+          OrderStatus.placed);
+    });
+
+    test('an order with no lines parses as an empty order, not a crash', () {
+      final parsed = orderFromRow({'id': 'o1'});
+      expect(parsed.lines, isEmpty);
+      expect(parsed.itemCount, 0);
+      expect(parsed.total, 0);
+    });
+
+    test('a ride row round-trips through the insert payload', () {
+      const ride = Ride(
+        id: 'local',
+        optionId: 'bike',
+        rideType: 'Bike taxi',
+        fromAddress: 'Home',
+        toAddress: 'Sector 62',
+        distanceKm: 7.4,
+        fare: 74,
+        eta: '3 min away',
+      );
+
+      final row = rideToRow(ride);
+      expect(row.containsKey('id'), isFalse);
+
+      final parsed = rideFromRow({...row, 'id': 'srv', 'reference': '#RD-1'});
+      expect(parsed.id, 'srv');
+      expect(parsed.optionId, 'bike');
+      expect(parsed.distanceKm, 7.4);
+      expect(parsed.fare, 74);
+      expect(parsed.status, RideStatus.searching);
+    });
+
+    test('a ride option row resolves its icon and colour', () {
+      final option = rideOptionFromRow({
+        'id': 'erickshaw',
+        'title': 'E-rickshaw',
+        'subtitle': 'Cheaper and Reliable',
+        'icon': 'electric_rickshaw',
+        'color': '#16A34A',
+        'eta': '6 min away',
+        'price_per_km': 6,
+      });
+
+      expect(option.icon, kIconRegistry['electric_rickshaw']);
+      expect(option.color.toARGB32(), 0xFF16A34A);
+      // 6 x 10 = 60, plus the flag-down charge.
+      expect(option.fareFor(10), 60 + RideOption.baseFare);
+    });
+
+    test('the config payload splits the wide tile out of the grid', () {
+      final config = appConfigFromRow({
+        'categories': [
+          {'id': 'food', 'label': 'Food', 'icon': 'restaurant', 'is_wide': false},
+          {'id': 'pros', 'label': 'Pros', 'icon': 'handyman', 'is_wide': true},
+        ],
+        'saved_places': [
+          {'id': 'h', 'icon': 'home', 'label': 'Home', 'address': 'A'},
+        ],
+        'filters': {
+          'cuisine': ['All', 'Thali'],
+        },
+        'traveler_tip': 'Carry water.',
+      }, kBundledConfig);
+
+      expect(config.categories.single.id, 'food');
+      expect(config.wideCategory.id, 'pros');
+      expect(config.savedPlaces.single.label, 'Home');
+      expect(config.filtersFor('cuisine'), ['All', 'Thali']);
+      expect(config.travelerTip, 'Carry water.');
+      // Not served, so the bundled classes stand.
+      expect(config.rideOptions, kBundledConfig.rideOptions);
+    });
+
+    test('an empty config payload falls back field by field', () {
+      final config = appConfigFromRow(const {}, kBundledConfig);
+
+      expect(config.categories, kBundledConfig.categories);
+      expect(config.wideCategory, kBundledConfig.wideCategory);
+      expect(config.savedPlaces, kBundledConfig.savedPlaces);
+      expect(config.rideOptions, kBundledConfig.rideOptions);
+      expect(config.travelerTip, kBundledConfig.travelerTip);
+      expect(config.filtersFor(FilterGroup.provider),
+          kProviderFilters);
+    });
+
+    test('an empty filter group is dropped rather than served empty', () {
+      // An empty chip row would look broken; the bundled group stands.
+      final config = appConfigFromRow({
+        'filters': {'cuisine': <String>[]},
+      }, kBundledConfig);
+
+      expect(config.filtersFor(FilterGroup.cuisine), kCuisineFilters);
+    });
+
     test('an unknown booking status does not crash the list', () {
       expect(
         bookingFromRow({'id': 'b1', 'status': 'cancelled'}).status,
