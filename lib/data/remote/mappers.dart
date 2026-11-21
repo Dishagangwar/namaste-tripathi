@@ -225,3 +225,190 @@ Map<String, dynamic> bookingToRow(Booking booking) => {
       'location': booking.location,
       'reference': booking.reference,
     };
+
+// ---------------------------------------------------------------- orders
+
+const _orderStatusNames = <String, OrderStatus>{
+  'placed': OrderStatus.placed,
+  'preparing': OrderStatus.preparing,
+  'on_the_way': OrderStatus.onTheWay,
+  'delivered': OrderStatus.delivered,
+  'cancelled': OrderStatus.cancelled,
+};
+
+/// `onTheWay` is `on_the_way` on the wire, so the enum name cannot be used
+/// directly in either direction.
+String orderStatusToWire(OrderStatus status) => switch (status) {
+      OrderStatus.placed => 'placed',
+      OrderStatus.preparing => 'preparing',
+      OrderStatus.onTheWay => 'on_the_way',
+      OrderStatus.delivered => 'delivered',
+      OrderStatus.cancelled => 'cancelled',
+    };
+
+OrderLine orderLineFromRow(Map<String, dynamic> row) => OrderLine(
+      itemId: str(row, 'item_id'),
+      name: str(row, 'name'),
+      quantity: integer(row, 'quantity', 1),
+      price: dbl(row, 'price'),
+    );
+
+Map<String, dynamic> orderLineToRow(OrderLine line) => {
+      'item_id': line.itemId,
+      'name': line.name,
+      'quantity': line.quantity,
+      'price': line.price,
+    };
+
+FoodOrder orderFromRow(Map<String, dynamic> row) => FoodOrder(
+      id: str(row, 'id'),
+      restaurantId: str(row, 'restaurant_id'),
+      restaurantName: str(row, 'restaurant_name'),
+      image: str(row, 'image'),
+      lines: [
+        for (final line in (row['lines'] as List? ?? const []))
+          if (line is Map) orderLineFromRow(Map<String, dynamic>.from(line)),
+      ],
+      subtotal: dbl(row, 'subtotal'),
+      deliveryFee: dbl(row, 'delivery_fee'),
+      taxes: dbl(row, 'taxes'),
+      discount: dbl(row, 'discount'),
+      total: dbl(row, 'total'),
+      paymentMethod: str(row, 'payment_method', 'gpay'),
+      couponCode: strOrNull(row, 'coupon_code'),
+      instructions: strList(row, 'instructions'),
+      status: _orderStatusNames[str(row, 'status')] ?? OrderStatus.placed,
+      reference: strOrNull(row, 'reference'),
+      placedAt: DateTime.tryParse(str(row, 'created_at')),
+    );
+
+/// The insert payload. `id` is the server's to assign, so it is not sent.
+Map<String, dynamic> orderToRow(FoodOrder order) => {
+      'restaurant_id': order.restaurantId,
+      'restaurant_name': order.restaurantName,
+      'image': order.image,
+      'lines': order.lines.map(orderLineToRow).toList(),
+      'subtotal': order.subtotal,
+      'delivery_fee': order.deliveryFee,
+      'taxes': order.taxes,
+      'discount': order.discount,
+      'total': order.total,
+      'payment_method': order.paymentMethod,
+      'coupon_code': order.couponCode,
+      'instructions': order.instructions,
+      'status': orderStatusToWire(order.status),
+    };
+
+// ---------------------------------------------------------------- rides
+
+const _rideStatusNames = <String, RideStatus>{
+  'searching': RideStatus.searching,
+  'assigned': RideStatus.assigned,
+  'completed': RideStatus.completed,
+  'cancelled': RideStatus.cancelled,
+};
+
+RideOption rideOptionFromRow(Map<String, dynamic> row) => RideOption(
+      id: str(row, 'id'),
+      title: str(row, 'title'),
+      subtitle: str(row, 'subtitle'),
+      icon: iconFromName(strOrNull(row, 'icon')),
+      color: colorFromHex(strOrNull(row, 'color')),
+      eta: str(row, 'eta'),
+      pricePerKm: integer(row, 'price_per_km', 10),
+    );
+
+Ride rideFromRow(Map<String, dynamic> row) => Ride(
+      id: str(row, 'id'),
+      optionId: str(row, 'option_id'),
+      rideType: str(row, 'ride_type'),
+      fromAddress: str(row, 'from_address'),
+      toAddress: str(row, 'to_address'),
+      distanceKm: dbl(row, 'distance_km'),
+      fare: integer(row, 'fare'),
+      eta: str(row, 'eta'),
+      status: _rideStatusNames[str(row, 'status')] ?? RideStatus.searching,
+      reference: strOrNull(row, 'reference'),
+    );
+
+Map<String, dynamic> rideToRow(Ride ride) => {
+      'option_id': ride.optionId,
+      'ride_type': ride.rideType,
+      'from_address': ride.fromAddress,
+      'to_address': ride.toAddress,
+      'distance_km': ride.distanceKm,
+      'fare': ride.fare,
+      'eta': ride.eta,
+      'status': ride.status.name,
+    };
+
+// ---------------------------------------------------------------- config
+
+ServiceCategory categoryFromRow(Map<String, dynamic> row) => ServiceCategory(
+      str(row, 'id'),
+      str(row, 'label'),
+      iconFromName(strOrNull(row, 'icon')),
+    );
+
+SavedPlace savedPlaceFromRow(Map<String, dynamic> row) => SavedPlace(
+      id: str(row, 'id'),
+      icon: iconFromName(strOrNull(row, 'icon')),
+      label: str(row, 'label'),
+      address: str(row, 'address'),
+    );
+
+/// Parses the whole `/config` payload, falling back field by field to the
+/// bundled taxonomy so a backend that serves only part of it still works.
+///
+/// The service tiles arrive as one list with an `is_wide` flag, because they
+/// are one table; the app wants them split into the grid and the wide tile.
+AppConfig appConfigFromRow(Map<String, dynamic> row, AppConfig fallback) {
+  final rows = [
+    for (final c in (row['categories'] as List? ?? const []))
+      if (c is Map) Map<String, dynamic>.from(c),
+  ];
+
+  final grid = [
+    for (final c in rows)
+      if (!boolean(c, 'is_wide')) categoryFromRow(c),
+  ];
+  final wide = [
+    for (final c in rows)
+      if (boolean(c, 'is_wide')) categoryFromRow(c),
+  ];
+
+  final places = [
+    for (final p in (row['saved_places'] as List? ?? const []))
+      if (p is Map) savedPlaceFromRow(Map<String, dynamic>.from(p)),
+  ];
+
+  final rides = [
+    for (final r in (row['ride_options'] as List? ?? const []))
+      if (r is Map) rideOptionFromRow(Map<String, dynamic>.from(r)),
+  ];
+
+  final filters = <String, List<String>>{};
+  final rawFilters = row['filters'];
+  if (rawFilters is Map) {
+    for (final entry in rawFilters.entries) {
+      final value = entry.value;
+      if (value is! List) continue;
+      final labels = [
+        for (final label in value)
+          if (label != null) label.toString(),
+      ];
+      if (labels.isNotEmpty) filters[entry.key.toString()] = labels;
+    }
+  }
+
+  final tip = strOrNull(row, 'traveler_tip');
+
+  return AppConfig(
+    categories: grid.isEmpty ? fallback.categories : grid,
+    wideCategory: wide.isEmpty ? fallback.wideCategory : wide.first,
+    savedPlaces: places.isEmpty ? fallback.savedPlaces : places,
+    rideOptions: rides.isEmpty ? fallback.rideOptions : rides,
+    filters: filters.isEmpty ? fallback.filters : filters,
+    travelerTip: tip ?? fallback.travelerTip,
+  );
+}
