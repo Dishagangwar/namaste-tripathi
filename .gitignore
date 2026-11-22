@@ -18,10 +18,10 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# The .vscode folder is kept in version control, but launch.json is not: it
+# holds the real Supabase publishable key and Google client IDs passed as
+# --dart-define. Copy launch.json.example to launch.json and fill it in.
+.vscode/launch.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
