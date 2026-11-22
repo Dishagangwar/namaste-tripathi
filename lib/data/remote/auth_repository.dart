@@ -13,8 +13,13 @@ import 'supabase_service.dart';
 class AuthRepository implements AuthSource {
   const AuthRepository();
 
-  /// True when codes can actually be sent. When false the auth screens stay
-  /// usable and simply skip verification.
+  /// Shown when the build itself cannot authenticate. It is a message rather
+  /// than a silent success so the app cannot walk into the shell with no
+  /// session behind it.
+  static const _notConfigured =
+      'This build has no Supabase key, so it cannot sign you in.';
+
+  /// True when codes can actually be sent.
   bool get isLive => SupabaseService.isReady;
 
   User? get currentUser => SupabaseService.currentUser;
@@ -39,7 +44,10 @@ class AuthRepository implements AuthSource {
     required String countryCode,
     required String phone,
   }) async {
-    if (!isLive) return null;
+    // Returning null here would mean success, which is how a build with no
+    // key once walked straight into the app with no session behind it and
+    // then dropped every write in silence.
+    if (!isLive) return _notConfigured;
     try {
       await SupabaseService.client.auth.signInWithOtp(
         phone: formatPhone(countryCode, phone),
@@ -61,7 +69,7 @@ class AuthRepository implements AuthSource {
     required String phone,
     required String token,
   }) async {
-    if (!isLive) return null;
+    if (!isLive) return _notConfigured;
     try {
       await SupabaseService.client.auth.verifyOTP(
         type: OtpType.sms,
