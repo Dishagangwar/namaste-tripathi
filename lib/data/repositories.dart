@@ -27,10 +27,38 @@ abstract interface class FavouritesSource {
   Future<void> remove(String itemType, String itemId);
 }
 
+/// How a provider sign-in ended.
+///
+/// Cancelling is deliberately not a failure. The user tapped the Google
+/// button, saw the account sheet and backed out; showing them an error for
+/// changing their mind would be wrong, so the UI needs to tell the two apart.
+enum SignInOutcome { signedIn, cancelled, failed }
+
+class SignInResult {
+  const SignInResult(this.outcome, {this.message});
+
+  final SignInOutcome outcome;
+
+  /// Set only when [outcome] is [SignInOutcome.failed].
+  final String? message;
+
+  static const signedIn = SignInResult(SignInOutcome.signedIn);
+  static const cancelled = SignInResult(SignInOutcome.cancelled);
+
+  factory SignInResult.failed(String message) =>
+      SignInResult(SignInOutcome.failed, message: message);
+
+  bool get isSignedIn => outcome == SignInOutcome.signedIn;
+  bool get isCancelled => outcome == SignInOutcome.cancelled;
+}
+
 abstract interface class AuthSource {
   bool get isSignedIn;
 
   String formatPhone(String countryCode, String number);
+
+  /// Signs in with Google, through the native account picker.
+  Future<SignInResult> signInWithGoogle();
 
   /// Null on success, or a message to show the user.
   Future<String?> sendOtp({required String countryCode, required String phone});

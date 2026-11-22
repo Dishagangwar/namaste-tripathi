@@ -135,6 +135,20 @@ class DemoBackend extends Interceptor {
           'user': {'id': 'demo-user', 'phone': body['phone']},
         });
 
+      // The demo backend never talks to Google: there are no client IDs in a
+      // keyless build, and the point of demo mode is to walk the app without
+      // any console setup. It grants the session the real flow would.
+      case 'POST /auth/google':
+        _signedIn = true;
+        return _DemoResponse(200, {
+          'user': {
+            'id': 'demo-user',
+            'email': 'demo@namastetripathi.local',
+            'full_name': 'Demo User',
+            'provider': 'google',
+          },
+        });
+
       case 'POST /auth/signout':
         _signedIn = false;
         return _DemoResponse(200, {'signed_out': true});

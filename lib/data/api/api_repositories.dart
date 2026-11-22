@@ -175,6 +175,19 @@ class ApiAuthRepository implements AuthSource {
     return code.startsWith('+') ? '$code$digits' : '+$code$digits';
   }
 
+  /// Fakes what the real flow does, without Google: demo mode is the backend
+  /// a keyless build falls back to, and it has no client IDs to sign in with.
+  @override
+  Future<SignInResult> signInWithGoogle() async {
+    try {
+      await client.post('/auth/google');
+      _signedIn = true;
+      return SignInResult.signedIn;
+    } catch (error) {
+      return SignInResult.failed(ApiClient.describeError(error));
+    }
+  }
+
   /// Returns null on success, or a message to show.
   @override
   Future<String?> sendOtp({

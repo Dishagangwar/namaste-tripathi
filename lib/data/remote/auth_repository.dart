@@ -1,23 +1,29 @@
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/google_auth_config.dart';
 import '../repositories.dart';
 import 'supabase_service.dart';
 
-/// The phone-OTP sign-in flow, plus the profile row that belongs to it.
+/// Real sign-in against Supabase: Google through the native account picker,
+/// and phone OTP where an SMS provider is configured.
 ///
-/// Supabase needs an SMS provider configured under Authentication > Providers
-/// > Phone for live codes. Until one is set up, add the number under
-/// Authentication > Users as a test phone with a fixed OTP, or the app's
-/// `demoMode` path lets the UI through without a server round-trip.
+/// Phone codes need a provider under Authentication > Providers > Phone.
+/// Until one is set up, add the number under Authentication > Users as a test
+/// phone with a fixed OTP. Google needs the provider enabled with the Web
+/// client ID and secret, and the Android/iOS client IDs listed as authorized.
 class AuthRepository implements AuthSource {
   const AuthRepository();
 
-  /// Shown when the build itself cannot authenticate. It is a message rather
-  /// than a silent success so the app cannot walk into the shell with no
-  /// session behind it.
+  /// Shown when the build itself cannot authenticate -- no key compiled in,
+  /// or no Google client ID. It is a message rather than a silent success so
+  /// the app cannot walk into the shell with no session behind it.
   static const _notConfigured =
       'This build has no Supabase key, so it cannot sign you in.';
+
+  /// Google's SDK only wants initialising once per process.
+  static bool _googleReady = false;
 
   /// True when codes can actually be sent.
   bool get isLive => SupabaseService.isReady;
@@ -129,9 +135,96 @@ class AuthRepository implements AuthSource {
     }
   }
 
+  /// Signs in with Google and exchanges the identity token for a Supabase
+  /// session.
+  ///
+  /// This is the native flow, not a browser redirect: Google's own account
+  /// sheet appears, so there is no deep link to configure and nothing leaves
+  /// the app. The identity token it returns is minted for the Web client ID
+  /// (see [GoogleAuthConfig]), which is the audience Supabase validates.
+  @override
+  Future<SignInResult> signInWithGoogle() async {
+    if (!isLive) return SignInResult.failed(_notConfigured);
+    if (!GoogleAuthConfig.isConfigured) {
+      return SignInResult.failed(
+        'Google sign-in is not configured in this build.',
+      );
+    }
+
+    try {
+      final google = GoogleSignIn.instance;
+      if (!_googleReady) {
+        await google.initialize(
+          // iOS reads its own client ID; Android matches by package name and
+          // signing certificate, so it passes none.
+          clientId: GoogleAuthConfig.iosClientIdOrNull,
+          serverClientId: GoogleAuthConfig.serverClientIdOrNull,
+        );
+        _googleReady = true;
+      }
+
+      final account = await google.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        return SignInResult.failed(
+          'Google did not return an identity token. Check that the Web '
+          'client ID is the one set as serverClientId.',
+        );
+      }
+
+      // Supabase takes the access token too when one is available; it is not
+      // required, so a null here is not an error.
+      final authorization = await account.authorizationClient
+          .authorizationForScopes(const ['email', 'profile']);
+
+      await SupabaseService.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: authorization?.accessToken,
+      );
+
+      // The profiles row is created by the sign-up trigger; this fills in the
+      // name Google gave us, which the trigger cannot know.
+      final name = account.displayName;
+      if (name != null && name.isNotEmpty) {
+        await saveProfile(fullName: name);
+      }
+
+      return SignInResult.signedIn;
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        return SignInResult.cancelled;
+      }
+      debugPrint('Google: sign-in failed — ${error.code} ${error.description}');
+      return SignInResult.failed(switch (error.code) {
+        // Worth naming precisely: these two are what a half-finished console
+        // setup looks like from inside the app.
+        GoogleSignInExceptionCode.clientConfigurationError =>
+          'This app is not registered for Google sign-in. Check the Android '
+              'package name and SHA-1, or the iOS client ID.',
+        GoogleSignInExceptionCode.providerConfigurationError =>
+          'Google Play services is unavailable or out of date on this device.',
+        _ => 'Could not sign in with Google. Please try again.',
+      });
+    } on AuthException catch (error) {
+      debugPrint('Supabase: signInWithIdToken failed — ${error.message}');
+      return SignInResult.failed(error.message);
+    } catch (error) {
+      debugPrint('Google: sign-in failed — $error');
+      return SignInResult.failed('Could not sign in with Google.');
+    }
+  }
+
   @override
   Future<void> signOut() async {
     if (!isLive) return;
+    // Google is signed out too, or its account sheet would skip straight past
+    // the picker on the next attempt and silently reuse the old account.
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (error) {
+      debugPrint('Google: signOut failed — $error');
+    }
     try {
       await SupabaseService.client.auth.signOut();
     } catch (error) {
