@@ -16,8 +16,15 @@ enum SessionStatus {
   /// Checking the code the user typed.
   verifying,
 
-  /// Verified (or skipped, in a build with no key).
+  /// Waiting on Google's account sheet and the token exchange.
+  signingInWithGoogle,
+
+  /// A real session exists on this device.
   authenticated,
+
+  /// The user backed out of the provider's account sheet. Not a failure, and
+  /// carries no message: nothing should be shown for changing your mind.
+  cancelled,
 
   /// The last attempt failed; [SessionState.errorMessage] says why.
   failure,
@@ -49,7 +56,9 @@ final class SessionState extends Equatable {
 
   bool get isSendingOtp => status == SessionStatus.sendingOtp;
   bool get isVerifying => status == SessionStatus.verifying;
-  bool get isBusy => isSendingOtp || isVerifying;
+  bool get isSigningInWithGoogle =>
+      status == SessionStatus.signingInWithGoogle;
+  bool get isBusy => isSendingOtp || isVerifying || isSigningInWithGoogle;
 
   SessionState copyWith({
     String? phone,

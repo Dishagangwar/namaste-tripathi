@@ -28,6 +28,11 @@ final class OtpRequested extends SessionEvent {
   const OtpRequested();
 }
 
+/// Sign in with Google, through the native account picker.
+final class GoogleSignInRequested extends SessionEvent {
+  const GoogleSignInRequested();
+}
+
 final class OtpSubmitted extends SessionEvent {
   const OtpSubmitted(this.token);
   final String token;

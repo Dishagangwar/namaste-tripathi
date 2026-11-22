@@ -86,6 +86,11 @@ class _OtpScreenState extends State<OtpScreen> {
       case SessionStatus.idle:
       case SessionStatus.sendingOtp:
       case SessionStatus.verifying:
+      // Neither can be reached from this screen: Google is only offered on
+      // onboarding. Listed rather than defaulted so adding a status is a
+      // compile error here instead of a silent no-op.
+      case SessionStatus.signingInWithGoogle:
+      case SessionStatus.cancelled:
         break;
     }
   }

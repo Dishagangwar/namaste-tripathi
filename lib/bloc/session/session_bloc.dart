@@ -7,11 +7,12 @@ import '../../data/repositories.dart';
 part 'session_event.dart';
 part 'session_state.dart';
 
-/// Phone sign-in and the profile that belongs to it.
+/// Sign-in and the profile that belongs to it.
 ///
-/// In a build with no Supabase key the repository reports success without
-/// calling out, so the screens stay walkable on bundled data instead of
-/// dead-ending at the OTP box.
+/// Two ways in: Google through the native account picker, and phone OTP where
+/// an SMS provider is configured. A build with no Supabase key runs against
+/// the demo backend, which grants a session without any console setup -- but
+/// it says so rather than reporting a sign-in that did not happen.
 class SessionBloc extends Bloc<SessionEvent, SessionState> {
   SessionBloc({AuthSource? auth})
       : auth = auth ?? Backend.auth(),
@@ -22,6 +23,7 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     on<SessionErrorCleared>((e, emit) => emit(
         state.copyWith(status: SessionStatus.idle, clearError: true)));
     on<OtpRequested>(_onOtpRequested);
+    on<GoogleSignInRequested>(_onGoogleSignInRequested);
     on<OtpSubmitted>(_onOtpSubmitted);
     on<SessionRoleSelected>(_onRoleSelected);
     on<SessionLocationChanged>(_onLocationChanged);
@@ -34,6 +36,31 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
 
   /// True when this device holds a real Supabase session.
   bool get isSignedIn => auth.isSignedIn;
+
+  Future<void> _onGoogleSignInRequested(
+    GoogleSignInRequested event,
+    Emitter<SessionState> emit,
+  ) async {
+    if (state.isBusy) return;
+    emit(state.copyWith(
+      status: SessionStatus.signingInWithGoogle,
+      clearError: true,
+    ));
+
+    final result = await auth.signInWithGoogle();
+
+    emit(switch (result.outcome) {
+      SignInOutcome.signedIn =>
+        state.copyWith(status: SessionStatus.authenticated),
+      // Back to idle with no message: the account sheet was dismissed.
+      SignInOutcome.cancelled =>
+        state.copyWith(status: SessionStatus.cancelled, clearError: true),
+      SignInOutcome.failed => state.copyWith(
+          status: SessionStatus.failure,
+          errorMessage: result.message ?? 'Could not sign in with Google.',
+        ),
+    });
+  }
 
   Future<void> _onOtpRequested(
     OtpRequested event,
