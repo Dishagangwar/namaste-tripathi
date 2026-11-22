@@ -66,5 +66,26 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Google sign-in needs the iOS client ID reversed as a URL scheme so
+	     the account sheet can hand the result back to the app. Replace the
+	     placeholder with YOUR iOS client ID read backwards: a client ID of
+	     1234-abcd.apps.googleusercontent.com becomes
+	     com.googleusercontent.apps.1234-abcd (no scheme, no trailing path).
+
+	     This value is static because Info.plist is baked at build time. The
+	     same client ID is also supplied at runtime through the dart-define
+	     GOOGLE_IOS_CLIENT_ID, which GoogleAuthConfig reads. Android needs
+	     none of this: it matches on package name and SHA-1 instead. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.REPLACE_WITH_REVERSED_IOS_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
