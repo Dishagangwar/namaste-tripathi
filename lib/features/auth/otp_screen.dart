@@ -4,13 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/bookings/bookings_bloc.dart';
-import '../../bloc/favourites/favourites_bloc.dart';
-import '../../bloc/orders/orders_bloc.dart';
-import '../../bloc/rides/rides_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import 'account_bootstrap.dart';
 import 'role_screen.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -72,16 +69,7 @@ class _OtpScreenState extends State<OtpScreen> {
   void _onSessionChanged(BuildContext context, SessionState state) {
     switch (state.status) {
       case SessionStatus.authenticated:
-        // Kick off the reads for this account. They are not awaited: the
-        // blocs emit as the rows land and the shell rebuilds itself, which
-        // beats holding the user on a spinner here.
-        if (context.read<SessionBloc>().isSignedIn) {
-          context.read<SessionBloc>().add(const SessionProfileRequested());
-          context.read<BookingsBloc>().add(const BookingsRequested());
-          context.read<FavouritesBloc>().add(const FavouritesRequested());
-          context.read<OrdersBloc>().add(const OrdersRequested());
-          context.read<RidesBloc>().add(const RidesRequested());
-        }
+        loadAccountData(context);
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const RoleScreen()),
         );
