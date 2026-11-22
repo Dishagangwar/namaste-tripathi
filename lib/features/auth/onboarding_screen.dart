@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/images.dart';
+import 'account_bootstrap.dart';
 import 'phone_screen.dart';
+import 'role_screen.dart';
 
 class _Slide {
   const _Slide(this.white, this.blue, this.image);
@@ -56,6 +60,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PhoneScreen()),
     );
+  }
+
+  /// This button used to call [_continue] as well, so "Continue with Google"
+  /// just opened the phone screen. It signs in now.
+  void _continueWithGoogle() {
+    final session = context.read<SessionBloc>();
+    if (session.state.isBusy) return;
+    session.add(const GoogleSignInRequested());
+  }
+
+  void _onSessionChanged(BuildContext context, SessionState state) {
+    switch (state.status) {
+      case SessionStatus.authenticated:
+        loadAccountData(context);
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const RoleScreen()),
+        );
+      case SessionStatus.failure:
+        showAppSnack(
+          context,
+          state.errorMessage ?? 'Could not sign in with Google.',
+        );
+        context.read<SessionBloc>().add(const SessionErrorCleared());
+      // Dismissing the account sheet is not an error, so nothing is shown.
+      case SessionStatus.cancelled:
+        context.read<SessionBloc>().add(const SessionErrorCleared());
+      case SessionStatus.idle:
+      case SessionStatus.sendingOtp:
+      case SessionStatus.otpSent:
+      case SessionStatus.verifying:
+      case SessionStatus.signingInWithGoogle:
+        break;
+    }
   }
 
   @override
@@ -161,19 +198,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _continue,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.text,
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _GoogleGlyph(),
-                            SizedBox(width: 10),
-                            Text('Continue with Google'),
-                          ],
+                      BlocConsumer<SessionBloc, SessionState>(
+                        listener: _onSessionChanged,
+                        listenWhen: (a, b) => a.status != b.status,
+                        builder: (context, session) => FilledButton(
+                          onPressed:
+                              session.isBusy ? null : _continueWithGoogle,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.text,
+                            disabledBackgroundColor: Colors.white70,
+                          ),
+                          child: session.isSigningInWithGoogle
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _GoogleGlyph(),
+                                    SizedBox(width: 10),
+                                    Text('Continue with Google'),
+                                  ],
+                                ),
                         ),
                       ),
                       const SizedBox(height: 18),
