@@ -6,6 +6,7 @@ import 'package:namaste_tripathi/data/api/api_client.dart';
 import 'package:namaste_tripathi/data/api/api_repositories.dart';
 import 'package:namaste_tripathi/data/models.dart';
 import 'package:namaste_tripathi/data/remote/mappers.dart';
+import 'package:namaste_tripathi/data/repositories.dart';
 
 import 'api_mockito_test.mocks.dart';
 
@@ -365,6 +366,22 @@ void main() {
           .captured
           .single as Map<String, dynamic>;
       expect(sent['phone'], '+919876543210');
+    });
+
+    test('a failed Google sign-in reports the reason, not a session', () async {
+      when(dio.post<dynamic>('/auth/google', data: anyNamed('data')))
+          .thenThrow(DioException(
+        requestOptions: opts('/auth/google'),
+        type: DioExceptionType.connectionError,
+      ));
+
+      final auth = ApiAuthRepository(client);
+      final result = await auth.signInWithGoogle();
+
+      expect(result.outcome, SignInOutcome.failed);
+      expect(result.message, 'Could not reach the server.');
+      // The important part: no session was granted on a failure.
+      expect(auth.isSignedIn, isFalse);
     });
 
     test('a rejected code comes back as the server worded it', () async {

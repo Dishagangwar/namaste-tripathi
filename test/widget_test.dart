@@ -144,4 +144,25 @@ void main() {
     // route transition rather than settling.
     await tester.pump(const Duration(milliseconds: 400));
   });
+
+  testWidgets('an unconfigured build refuses Google sign-in out loud',
+      (tester) async {
+    // Supabase mode with no key compiled in. This used to walk straight into
+    // the app with no session, then drop every write in silence; the guard
+    // now reports it instead.
+    await tester.pumpWidget(const NamasteTripathiApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Continue with Google'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Still on onboarding, with a message, rather than through to the shell.
+    expect(find.text('Continue with OTP'), findsOneWidget);
+    expect(
+      find.textContaining('cannot sign you in'),
+      findsOneWidget,
+      reason: 'a build that cannot authenticate has to say so',
+    );
+  });
 }

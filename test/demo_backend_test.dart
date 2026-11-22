@@ -114,6 +114,22 @@ void main() {
       expect(auth.isSignedIn, isTrue);
     });
 
+    test('Google sign-in grants a session without any console setup', () async {
+      // Demo mode is what a keyless build falls back to, so this path has to
+      // work with no client IDs and no Google SDK involved.
+      final auth = ApiAuthRepository(client);
+      expect(auth.isSignedIn, isFalse);
+
+      final result = await auth.signInWithGoogle();
+      expect(result.isSignedIn, isTrue);
+      expect(result.isCancelled, isFalse);
+      expect(auth.isSignedIn, isTrue);
+
+      // And it is a real session as far as the rest of the backend cares.
+      expect((await auth.fetchProfile())?['full_name'], 'Demo User');
+      expect(await ApiOrdersRepository(client).fetch(), isNotNull);
+    });
+
     test('the profile is gated on being signed in', () async {
       final auth = ApiAuthRepository(client);
       expect(await auth.fetchProfile(), isNull);

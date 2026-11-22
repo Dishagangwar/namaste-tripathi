@@ -218,6 +218,68 @@ void main() {
     });
   });
 
+  group('SessionBloc: Google sign-in', () {
+    test('a successful sign-in reaches authenticated', () async {
+      final bloc = SessionBloc(auth: _FakeAuth(SignInResult.signedIn))
+        ..add(const GoogleSignInRequested());
+
+      final busy = await bloc.stream.first;
+      expect(busy.isSigningInWithGoogle, isTrue);
+      expect(busy.isBusy, isTrue);
+
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.authenticated);
+      expect(bloc.state.errorMessage, isNull);
+      await bloc.close();
+    });
+
+    test('backing out of the account sheet is not a failure', () async {
+      final bloc = SessionBloc(auth: _FakeAuth(SignInResult.cancelled))
+        ..add(const GoogleSignInRequested());
+
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.cancelled);
+
+      // The distinction that matters: no error message, so the UI shows
+      // nothing for a user who changed their mind.
+      expect(bloc.state.errorMessage, isNull);
+      expect(bloc.state.status, isNot(SessionStatus.failure));
+      await bloc.close();
+    });
+
+    test("a failure carries the reason it was given", () async {
+      final bloc = SessionBloc(
+        auth: _FakeAuth(SignInResult.failed('This app is not registered.')),
+      )..add(const GoogleSignInRequested());
+
+      await bloc.stream.firstWhere((s) => s.status == SessionStatus.failure);
+      expect(bloc.state.errorMessage, 'This app is not registered.');
+      await bloc.close();
+    });
+
+    test('a second tap while one is in flight is ignored', () async {
+      // The delay is what makes this a real test: with an instant fake the
+      // first sign-in completes before the second event is handled, so the
+      // taps are sequential and two calls would be correct.
+      final auth = _FakeAuth(
+        SignInResult.signedIn,
+        delay: const Duration(milliseconds: 50),
+      );
+      final bloc = SessionBloc(auth: auth)
+        ..add(const GoogleSignInRequested());
+
+      await bloc.stream.firstWhere((s) => s.isSigningInWithGoogle);
+      bloc.add(const GoogleSignInRequested());
+
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.authenticated);
+      // The button is disabled while busy, but the guard is in the bloc too:
+      // two account sheets would be a mess.
+      expect(auth.googleCalls, 1);
+      await bloc.close();
+    });
+  });
+
   group('ConfigBloc', () {
     test('starts on the bundled taxonomy, before anything is fetched', () {
       final state = ConfigBloc(repository: _FakeConfig(null)).state;
@@ -467,4 +529,64 @@ class _FakeRides implements RidesSource {
     bookCalls++;
     return stored;
   }
+}
+
+/// A stand-in for the auth source, so the Google paths can be driven without
+/// the platform SDK or a server.
+class _FakeAuth implements AuthSource {
+  _FakeAuth(this.googleResult, {this.delay = Duration.zero});
+
+  final SignInResult googleResult;
+
+  /// Holds the sign-in open, so a test can dispatch a second tap while the
+  /// first is genuinely still in flight. Without it the fake returns before
+  /// the next event is handled and the two taps are simply sequential.
+  final Duration delay;
+
+  int googleCalls = 0;
+
+  bool _signedIn = false;
+  @override
+  bool get isSignedIn => _signedIn;
+
+  @override
+  Future<SignInResult> signInWithGoogle() async {
+    googleCalls++;
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    if (googleResult.isSignedIn) _signedIn = true;
+    return googleResult;
+  }
+
+  @override
+  String formatPhone(String countryCode, String number) =>
+      '$countryCode$number';
+
+  @override
+  Future<String?> sendOtp({
+    required String countryCode,
+    required String phone,
+  }) async =>
+      null;
+
+  @override
+  Future<String?> verifyOtp({
+    required String countryCode,
+    required String phone,
+    required String token,
+  }) async =>
+      null;
+
+  @override
+  Future<Map<String, dynamic>?> fetchProfile() async => null;
+
+  @override
+  Future<void> saveProfile({
+    String? fullName,
+    String? role,
+    String? locationLabel,
+    String? address,
+  }) async {}
+
+  @override
+  Future<void> signOut() async => _signedIn = false;
 }
