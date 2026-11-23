@@ -118,6 +118,51 @@ already there to replace:
 `GOOGLE_SERVER_CLIENT_ID` is the **Web** client ID, not the Android one.
 That is the single easiest thing to get wrong here.
 
+### Whichever launcher you actually use
+
+This is the step that silently undid every other one. The dart-defines live
+in the launcher's configuration, and **each launcher has its own**:
+
+| Launching from | Where the defines go |
+|---|---|
+| VS Code | `.vscode/launch.json` → `toolArgs`, **and** `"templateFor": "lib"` on that config |
+| Android Studio / IntelliJ | Run → Edit Configurations → **Additional run args**, stored in `.idea/runConfigurations/main_dart.xml` as `additionalArgs` |
+| A terminal | on the `flutter run` command itself |
+
+`templateFor` is the part that is easy to miss. Without it, the Run and
+Debug **CodeLens links above `main()`** — the most natural way to start the
+app — do not use your named configuration at all. The Dart-Code docs are
+explicit: setting it "will cause this config to be used for all default
+Run/Debug CodeLens links", and without it the config "will not be used as a
+template at all". So the app launches with no defines, lands on the demo
+backend, and every key you carefully pasted sits in a file nothing read.
+
+It is scoped to `lib` rather than `""` on purpose: an empty string covers
+the whole project including the test runner, which would compile the tests
+with these defines and change what they see.
+
+The reliable alternative is the Run and Debug sidebar: pick **Namaste
+Tripathi** from the dropdown and press F5. The dropdown is the only place
+VS Code lets you choose a named configuration.
+
+Setting them in one launcher does nothing for the others. An Android Studio run
+configuration created by the IDE has no additional args at all, so it builds
+with no key, and the app falls back to the demo backend — which signs you in
+instantly, accepts bookings and stores none of it.
+
+The terminal form, if you ever want to bypass both:
+
+```bash
+flutter run --dart-define=BACKEND=supabase --dart-define=SUPABASE_PUBLISHABLE_KEY=<your key> --dart-define=GOOGLE_SERVER_CLIENT_ID=<web client id>.apps.googleusercontent.com
+```
+
+`BACKEND=supabase` is worth keeping on. It stops the app falling back to the
+demo backend when Supabase cannot start: sign-in refuses with a message
+instead of quietly faking one.
+
+In debug builds the onboarding screen shows which backend is live. Green
+means Supabase; red means demo and nothing you do will be saved.
+
 ### iOS only
 
 `ios/Runner/Info.plist` has a URL scheme placeholder to replace with your
@@ -168,12 +213,31 @@ client IDs. Add the account under Audience → Test users, or publish the app.
 
 ## What this does not cover
 
-* **Phone OTP is still dead in a keyed build.** `sms_provider` is Twilio with
-  no sender, and Indian numbers additionally need DLT registration. The
-  "Continue with OTP" button now reports the provider's own error instead of
-  failing silently, but it cannot deliver a code until you either finish that
-  registration or switch to a provider like MSG91. Supabase test phone
-  numbers remain the free way through.
+* **Phone OTP is still blocked by the Twilio trial.** A keyed build now
+  reaches Twilio and gets back:
+
+  > Error sending confirmation OTP to provider: Invalid template name. Trial
+  > accounts can only use predefined SMS templates. (Twilio 572006)
+
+  That is not a bug in the app — it is the provider refusing the request.
+  Twilio's trial accounts cannot send a custom message body or template, and
+  Supabase's phone auth sends its own. Reaching this error is progress: it
+  means the app is on the real backend and the request got all the way to
+  Twilio.
+
+  Three ways past it, cheapest first:
+
+  1. **Supabase test phone numbers** (free, no SMS at all). Authentication →
+     Sign In / Providers → Phone → Test OTPs. Add a number and a fixed code;
+     Supabase then skips Twilio entirely and signs that number in. This
+     creates a real account, which is enough to confirm that bookings and
+     orders persist.
+  2. **Use Google instead**, which is what the rest of this document sets up.
+     No SMS, no provider account, no per-message cost.
+  3. **Upgrade the Twilio account** to send custom bodies. For Indian
+     numbers you would also need DLT registration, which is a business
+     registration process taking days to weeks, and an Indian provider such
+     as MSG91 is usually the better route.
 * **Release signing.** Only the debug SHA-1 is registered above.
 * **Android `namespace`.** `android/app/build.gradle.kts` still says
   `com.mycityapp.my_city_app` while `applicationId` is
