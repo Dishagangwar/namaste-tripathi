@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../../data/backend.dart';
 import '../../data/images.dart';
 import 'account_bootstrap.dart';
 import 'phone_screen.dart';
@@ -73,6 +75,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _onSessionChanged(BuildContext context, SessionState state) {
     switch (state.status) {
       case SessionStatus.authenticated:
+        // A demo session looks exactly like a real one from here, so it has
+        // to announce itself; otherwise "it signed me in" and "it pretended
+        // to sign me in" are the same screen.
+        if (state.signedInWithDemoBackend) {
+          // Carries the reason, not just the fact. "You are on the demo
+          // backend" without "because BACKEND and the key never reached this
+          // build" leaves you with nothing to act on.
+          showAppSnack(
+            context,
+            'Demo backend — no Google account was used. ${Backend.reason}',
+          );
+        }
         loadAccountData(context);
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const RoleScreen()),
@@ -228,7 +242,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 14),
+                      const _BackendNotice(),
+                      const SizedBox(height: 4),
                       const Text(
                         'By continuing you agree to our Terms & Conditions and '
                         'Privacy Policy and receiving calls/sms from us even if '
@@ -281,6 +297,40 @@ class _GoogleGlyph extends StatelessWidget {
             color: Colors.white,
             height: 1.05,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Names the backend the app is running against, in debug builds only.
+///
+/// Release builds show nothing. This exists because the demo fallback is
+/// silent by design -- it has to be, or a keyless checkout would be unusable
+/// -- and a silent fallback is indistinguishable from a working one until
+/// you go looking in the database and find it empty.
+class _BackendNotice extends StatelessWidget {
+  const _BackendNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kDebugMode) return const SizedBox.shrink();
+
+    final demo = Backend.isDemo;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: (demo ? AppColors.danger : AppColors.success)
+            .withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        Backend.reason,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
