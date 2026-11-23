@@ -125,6 +125,10 @@ void main() {
       expect(result.isCancelled, isFalse);
       expect(auth.isSignedIn, isTrue);
 
+      // And it admits what it is. Without this the demo backend is a
+      // convincing impersonation of a working Google integration.
+      expect(result.isDemo, isTrue);
+
       // And it is a real session as far as the rest of the backend cares.
       expect((await auth.fetchProfile())?['full_name'], 'Demo User');
       expect(await ApiOrdersRepository(client).fetch(), isNotNull);

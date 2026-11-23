@@ -247,6 +247,29 @@ void main() {
       await bloc.close();
     });
 
+    test('a demo session is marked as one', () async {
+      // The bug this guards: the demo backend signs you in instantly with no
+      // Google sheet, and that was indistinguishable from the real thing all
+      // the way to the role screen.
+      final bloc = SessionBloc(auth: _FakeAuth(SignInResult.demoSignedIn))
+        ..add(const GoogleSignInRequested());
+
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.authenticated);
+      expect(bloc.state.signedInWithDemoBackend, isTrue);
+      await bloc.close();
+    });
+
+    test('a real session is not marked as a demo one', () async {
+      final bloc = SessionBloc(auth: _FakeAuth(SignInResult.signedIn))
+        ..add(const GoogleSignInRequested());
+
+      await bloc.stream
+          .firstWhere((s) => s.status == SessionStatus.authenticated);
+      expect(bloc.state.signedInWithDemoBackend, isFalse);
+      await bloc.close();
+    });
+
     test("a failure carries the reason it was given", () async {
       final bloc = SessionBloc(
         auth: _FakeAuth(SignInResult.failed('This app is not registered.')),

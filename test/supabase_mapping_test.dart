@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:namaste_tripathi/bloc/catalog/catalog_bloc.dart';
 import 'package:namaste_tripathi/data/backend.dart';
+import 'package:namaste_tripathi/core/google_auth_config.dart';
 import 'package:namaste_tripathi/core/supabase_config.dart';
 import 'package:namaste_tripathi/core/theme.dart';
 import 'package:namaste_tripathi/data/icon_registry.dart';
@@ -267,6 +268,82 @@ void main() {
       // offline path every other test relies on.
       expect(SupabaseConfig.key, isEmpty);
       expect(SupabaseConfig.isConfigured, isFalse);
+    });
+  });
+
+  group('backend choice', () {
+    tearDown(Backend.reset);
+
+    test('it says why it picked what it picked', () {
+      // Without a key compiled in, a test build falls back to demo.
+      Backend.reset();
+      expect(Backend.isDemo, isTrue);
+      // The message has to name the missing define, not just say
+      // "unconfigured": that vagueness cost three separate bug hunts.
+      expect(Backend.reason, contains('no BACKEND define'));
+      expect(Backend.reason, contains('SUPABASE_PUBLISHABLE_KEY'));
+    });
+
+    test('a forced mode says it was forced', () {
+      Backend.mode = BackendMode.supabase;
+      expect(Backend.reason, contains('forced'));
+    });
+  });
+
+  group('Google client IDs', () {
+    test('a real client ID is accepted', () {
+      expect(
+        GoogleAuthConfig.looksLikeClientId(
+          '229993461987-rj1oj8h8envnjpdbhrjpnosnuc7f3dgj'
+          '.apps.googleusercontent.com',
+        ),
+        isTrue,
+      );
+    });
+
+    test('a placeholder ending in the real suffix is refused', () {
+      // This one got through a suffix-only check and reported the build as
+      // configured, so sign-in failed inside Google's SDK instead of here.
+      expect(
+        GoogleAuthConfig.looksLikeClientId(
+          'PASTE_YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+        ),
+        isFalse,
+      );
+    });
+
+    test('a stray character before the project number is refused', () {
+      // Left behind by overwriting PASTE_YOUR_WEB_CLIENT_ID: the P stayed.
+      expect(
+        GoogleAuthConfig.looksLikeClientId(
+          'P229993461987-rj1oj8h8envnjpdbhrjpnosnuc7f3dgj'
+          '.apps.googleusercontent.com',
+        ),
+        isFalse,
+      );
+    });
+
+    test('empty and almost-right values are refused', () {
+      expect(GoogleAuthConfig.looksLikeClientId(''), isFalse);
+      expect(GoogleAuthConfig.looksLikeClientId('229993461987'), isFalse);
+      expect(
+        GoogleAuthConfig.looksLikeClientId('229993461987-abc.googleusercontent.com'),
+        isFalse,
+      );
+      // Trailing text after the suffix must not slip past either.
+      expect(
+        GoogleAuthConfig.looksLikeClientId(
+          '229993461987-abc.apps.googleusercontent.com/extra',
+        ),
+        isFalse,
+      );
+    });
+
+    test('a build with no client ID is not treated as configured', () {
+      // Nothing is compiled in under `flutter test`.
+      expect(GoogleAuthConfig.isConfigured, isFalse);
+      expect(GoogleAuthConfig.serverClientIdOrNull, isNull);
+      expect(GoogleAuthConfig.iosClientIdOrNull, isNull);
     });
   });
 
