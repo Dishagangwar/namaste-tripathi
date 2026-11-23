@@ -9,6 +9,7 @@ import 'remote/config_repository.dart';
 import 'remote/favourites_repository.dart';
 import 'remote/orders_repository.dart';
 import 'remote/rides_repository.dart';
+import '../core/supabase_config.dart';
 import 'remote/supabase_service.dart';
 import 'repositories.dart';
 
@@ -50,6 +51,35 @@ class Backend {
   }
 
   static bool get isDemo => mode == BackendMode.demo;
+
+  /// Why the app is on the backend it is on, and what the build received.
+  ///
+  /// Three separate hunts in this project ended at "the app was quietly on
+  /// the demo backend", so this is deliberately specific: it names the
+  /// define that is missing rather than saying the build is unconfigured.
+  static String get reason {
+    if (_override != null) {
+      return 'forced to ${_override!.name} by a test';
+    }
+
+    final flag = _flag.toLowerCase();
+    if (flag == 'demo') {
+      return 'demo: pinned by BACKEND=demo';
+    }
+    if (flag == 'supabase') {
+      return SupabaseService.isReady
+          ? 'Supabase: pinned by BACKEND=supabase'
+          : 'BACKEND=supabase, but it did not start — '
+              '${SupabaseConfig.diagnosis}';
+    }
+
+    // No BACKEND define at all, which by itself means the dart-defines are
+    // not reaching the build: every launch config in this repo sets it.
+    if (SupabaseService.isReady) {
+      return 'Supabase: ${SupabaseConfig.diagnosis} (no BACKEND define)';
+    }
+    return 'demo: no BACKEND define, and ${SupabaseConfig.diagnosis}';
+  }
 
   /// One client for the process, so the demo backend's mutable state (the
   /// bookings you add, the favourites you toggle) survives between screens.
