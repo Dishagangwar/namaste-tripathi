@@ -38,4 +38,22 @@ class SupabaseConfig {
   /// which always start with the base64 of `{"alg"`.
   static bool _looksLikeKey(String value) =>
       value.startsWith('sb_publishable_') || value.startsWith('eyJ');
+
+  /// What this build actually received, for the debug badge.
+  ///
+  /// "no key" and "a key that did not work" are different problems with very
+  /// different fixes, and the app was reporting them with the same sentence.
+  /// The key is publishable -- it ships in every copy of the app -- so a
+  /// prefix is safe to show, and seeing it is the quickest proof that the
+  /// dart-define reached the build at all.
+  static String get diagnosis {
+    if (key.isEmpty) {
+      return 'no SUPABASE_PUBLISHABLE_KEY was passed to this build';
+    }
+    if (!_looksLikeKey(key)) {
+      return 'SUPABASE_PUBLISHABLE_KEY is set but malformed: '
+          '"${key.length > 12 ? '${key.substring(0, 12)}…' : key}"';
+    }
+    return 'key ${key.substring(0, 18)}… compiled in';
+  }
 }
