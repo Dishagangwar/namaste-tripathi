@@ -182,7 +182,9 @@ class ApiAuthRepository implements AuthSource {
     try {
       await client.post('/auth/google');
       _signedIn = true;
-      return SignInResult.signedIn;
+      // Flagged as a demo session: no Google account was involved, and the
+      // UI has to be able to say so rather than show a normal sign-in.
+      return SignInResult.demoSignedIn;
     } catch (error) {
       return SignInResult.failed(ApiClient.describeError(error));
     }

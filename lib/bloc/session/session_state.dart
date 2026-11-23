@@ -40,6 +40,7 @@ final class SessionState extends Equatable {
     this.name = 'Darsh',
     this.status = SessionStatus.idle,
     this.errorMessage,
+    this.signedInWithDemoBackend = false,
   });
 
   final String phone;
@@ -53,6 +54,10 @@ final class SessionState extends Equatable {
   /// The server's own message, surfaced verbatim so a provider misconfigured
   /// in the dashboard names itself rather than hiding behind a generic line.
   final String? errorMessage;
+
+  /// True when the current session came from the in-app demo backend rather
+  /// than a real provider.
+  final bool signedInWithDemoBackend;
 
   bool get isSendingOtp => status == SessionStatus.sendingOtp;
   bool get isVerifying => status == SessionStatus.verifying;
@@ -69,6 +74,7 @@ final class SessionState extends Equatable {
     String? name,
     SessionStatus? status,
     String? errorMessage,
+    bool? signedInWithDemoBackend,
     bool clearError = false,
   }) =>
       SessionState(
@@ -80,6 +86,8 @@ final class SessionState extends Equatable {
         name: name ?? this.name,
         status: status ?? this.status,
         errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+        signedInWithDemoBackend:
+            signedInWithDemoBackend ?? this.signedInWithDemoBackend,
       );
 
   @override
@@ -92,5 +100,6 @@ final class SessionState extends Equatable {
         name,
         status,
         errorMessage,
+        signedInWithDemoBackend,
       ];
 }

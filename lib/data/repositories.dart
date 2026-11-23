@@ -35,14 +35,24 @@ abstract interface class FavouritesSource {
 enum SignInOutcome { signedIn, cancelled, failed }
 
 class SignInResult {
-  const SignInResult(this.outcome, {this.message});
+  const SignInResult(this.outcome, {this.message, this.isDemo = false});
 
   final SignInOutcome outcome;
 
   /// Set only when [outcome] is [SignInOutcome.failed].
   final String? message;
 
+  /// True when no real provider was involved and the session came from the
+  /// in-app demo backend.
+  ///
+  /// This exists because a fake sign-in that looks identical to a real one
+  /// is how an afternoon gets lost: the Google button appeared to work, went
+  /// straight to the next screen, and nothing had authenticated.
+  final bool isDemo;
+
   static const signedIn = SignInResult(SignInOutcome.signedIn);
+  static const demoSignedIn =
+      SignInResult(SignInOutcome.signedIn, isDemo: true);
   static const cancelled = SignInResult(SignInOutcome.cancelled);
 
   factory SignInResult.failed(String message) =>

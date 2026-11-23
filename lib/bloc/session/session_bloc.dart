@@ -50,8 +50,10 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     final result = await auth.signInWithGoogle();
 
     emit(switch (result.outcome) {
-      SignInOutcome.signedIn =>
-        state.copyWith(status: SessionStatus.authenticated),
+      SignInOutcome.signedIn => state.copyWith(
+          status: SessionStatus.authenticated,
+          signedInWithDemoBackend: result.isDemo,
+        ),
       // Back to idle with no message: the account sheet was dismissed.
       SignInOutcome.cancelled =>
         state.copyWith(status: SessionStatus.cancelled, clearError: true),
