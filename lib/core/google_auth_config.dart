@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Google sign-in client IDs.
 ///
 /// These are not secrets -- a client ID ships inside every copy of the app --
@@ -28,11 +30,22 @@ class GoogleAuthConfig {
 
   static const iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
 
-  /// A client ID looks like `<digits>-<hash>.apps.googleusercontent.com`.
-  /// Checking the shape stops a placeholder from being treated as real, the
-  /// way [SupabaseConfig] guards its key.
-  static bool _looksLikeClientId(String value) =>
-      value.endsWith('.apps.googleusercontent.com');
+  /// A client ID is `<digits>-<hash>.apps.googleusercontent.com`.
+  ///
+  /// The whole shape is matched, not just the suffix. Checking the suffix
+  /// alone let two things through that should have been caught here: a
+  /// placeholder that ended in the real suffix, and a client ID pasted with
+  /// a stray character in front of the project number. Both reported the
+  /// build as configured and then failed inside Google's SDK, which is
+  /// exactly what this guard exists to prevent.
+  static final _clientIdPattern =
+      RegExp(r'^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$');
+
+  @visibleForTesting
+  static bool looksLikeClientId(String value) =>
+      _clientIdPattern.hasMatch(value);
+
+  static bool _looksLikeClientId(String value) => looksLikeClientId(value);
 
   /// False when this build has no usable Web client ID, in which case Google
   /// sign-in is reported as unconfigured instead of failing deep inside the
