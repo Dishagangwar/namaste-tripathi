@@ -2,21 +2,26 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Namaste Tripathi",
+      "name": "▶ Namaste Tripathi (real Supabase)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "toolArgs": [
+        "--dart-define=BACKEND=supabase",
         "--dart-define=SUPABASE_PUBLISHABLE_KEY=PASTE_YOUR_PUBLISHABLE_KEY_HERE",
-        "--dart-define=GOOGLE_SERVER_CLIENT_ID=PASTE_YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
-        "--dart-define=GOOGLE_IOS_CLIENT_ID=PASTE_YOUR_IOS_CLIENT_ID.apps.googleusercontent.com"
-      ]
+        "--dart-define=GOOGLE_SERVER_CLIENT_ID=PASTE_WEB_CLIENT_ID_HERE",
+        "--dart-define=GOOGLE_IOS_CLIENT_ID=PASTE_IOS_CLIENT_ID_HERE"
+      ],
+      "templateFor": "lib"
     },
     {
-      "name": "Namaste Tripathi (demo backend, no Supabase)",
+      "name": "DEMO ONLY (fake sign-in, saves nothing)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=BACKEND=demo"
+      ]
     }
   ]
 }
