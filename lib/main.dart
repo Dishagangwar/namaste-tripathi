@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,6 +12,7 @@ import 'bloc/orders/orders_bloc.dart';
 import 'bloc/rides/rides_bloc.dart';
 import 'bloc/session/session_bloc.dart';
 import 'core/theme.dart';
+import 'data/backend.dart';
 import 'data/remote/supabase_service.dart';
 import 'features/auth/onboarding_screen.dart';
 
@@ -24,6 +26,20 @@ Future<void> main() async {
   // Never throws: without a key, or with the project unreachable, the app
   // runs on the bundled catalogue instead of failing to start.
   await SupabaseService.initialize();
+
+  // Loud on purpose. A build that quietly lands on the demo backend looks
+  // exactly like a working one -- it signs you in, accepts bookings, and
+  // keeps none of it -- so the first line in the console says which it is.
+  if (kDebugMode) {
+    debugPrint('=' * 62);
+    debugPrint('  BACKEND: ${Backend.mode.name.toUpperCase()}');
+    debugPrint('  ${Backend.reason}');
+    if (Backend.isDemo) {
+      debugPrint('  Nothing you do will be saved to Supabase.');
+    }
+    debugPrint('=' * 62);
+  }
+
   runApp(const NamasteTripathiApp());
 }
 
