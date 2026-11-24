@@ -1,16 +1,19 @@
 import 'package:flutter/foundation.dart';
 
-import '../mock_data.dart';
 import '../models.dart';
-import '../repositories.dart';
 import '../remote/mappers.dart';
+import '../repositories.dart';
 import 'api_client.dart';
 
-/// Repositories that talk HTTP through [ApiClient].
+/// Repositories that talk HTTP through the generated Retrofit client.
 ///
-/// They parse with the same `mappers.dart` the Supabase repositories use,
-/// because the demo backend serves the same field names. One wire format,
-/// one set of parsers, two transports.
+/// They hold an [ApiClient] but only ever use its `service`: no paths, verbs
+/// or response shaping appear here, because those are declared once in
+/// `api_service.dart`. What is left is this layer's actual job -- deciding
+/// what a failure means to the caller.
+///
+/// Every method swallows its exception and answers with null or a message,
+/// so one unreachable endpoint cannot take down a screen.
 
 class ApiCatalogRepository implements CatalogSource {
   ApiCatalogRepository(this.client);
@@ -20,63 +23,69 @@ class ApiCatalogRepository implements CatalogSource {
   @override
   Future<CatalogData> fetch() async {
     try {
-      final results = await Future.wait([
-        client.getList('/catalog/restaurants'),
-        client.getList('/catalog/hotels'),
-        client.getList('/catalog/properties'),
-        client.getList('/catalog/providers'),
-        client.getList('/catalog/offers'),
-        client.getList('/catalog/coupons'),
+      final api = client.service;
+
+      // Started together, awaited separately: Future.wait over mixed types
+      // would erase them back to Object and undo the point of the typed
+      // client.
+      final restaurants = api.restaurants();
+      final hotels = api.hotels();
+      final properties = api.properties();
+      final providers = api.providers();
+      final offers = api.offers();
+      final coupons = api.coupons();
+      await Future.wait<void>([
+        restaurants,
+        hotels,
+        properties,
+        providers,
+        offers,
+        coupons,
       ]);
 
       final bundled = CatalogData.bundled();
-      final restaurants = [
-        for (final row in results[0])
-          restaurantFromRow(
-            row,
-            // Nested by this API rather than fetched separately.
-            menu: [
-              for (final m in (row['menu'] as List? ?? const []))
-                if (m is Map) menuItemFromRow(Map<String, dynamic>.from(m)),
-            ],
-          ),
-      ];
-
-      final providers = [
-        for (final row in results[3])
-          providerFromRow(
-            row,
-            expertise: [
-              for (final e in (row['expertise'] as List? ?? const []))
-                if (e is Map) expertiseFromRow(Map<String, dynamic>.from(e)),
-            ],
-            testimonials: [
-              for (final r in (row['reviews_list'] as List? ?? const []))
-                if (r is Map) reviewFromRow(Map<String, dynamic>.from(r)),
-            ],
-          ),
-      ];
+      List<T> or<T>(List<T> fetched, List<T> fallback) =>
+          fetched.isEmpty ? fallback : fetched;
 
       return CatalogData(
-        restaurants: restaurants.isEmpty ? bundled.restaurants : restaurants,
-        hotels: results[1].isEmpty
-            ? bundled.hotels
-            : [for (final r in results[1]) hotelFromRow(r)],
-        properties: results[2].isEmpty
-            ? bundled.properties
-            : [for (final r in results[2]) propertyFromRow(r)],
-        providers: providers.isEmpty ? bundled.providers : providers,
-        offers: results[4].isEmpty
-            ? bundled.offers
-            : [for (final r in results[4]) offerFromRow(r)],
-        coupons: results[5].isEmpty
-            ? bundled.coupons
-            : [for (final r in results[5]) couponFromRow(r)],
+        restaurants: or(
+          [for (final w in await restaurants) w.value],
+          bundled.restaurants,
+        ),
+        hotels: or([for (final w in await hotels) w.value], bundled.hotels),
+        properties: or(
+          [for (final w in await properties) w.value],
+          bundled.properties,
+        ),
+        providers: or(
+          [for (final w in await providers) w.value],
+          bundled.providers,
+        ),
+        offers: or([for (final w in await offers) w.value], bundled.offers),
+        coupons: or([for (final w in await coupons) w.value], bundled.coupons),
         fromRemote: true,
       );
     } catch (error) {
       debugPrint('API: catalogue fetch failed — ${ApiClient.describeError(error)}');
       return CatalogData.bundled();
+    }
+  }
+}
+
+class ApiConfigRepository implements ConfigSource {
+  ApiConfigRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<AppConfig?> fetch() async {
+    try {
+      // The fallback to the bundled taxonomy happens inside the wire type's
+      // fromJson, so a partial payload fills in field by field.
+      return (await client.service.config()).value;
+    } catch (error) {
+      debugPrint('API: config fetch failed — ${ApiClient.describeError(error)}');
+      return null;
     }
   }
 }
@@ -89,8 +98,7 @@ class ApiBookingsRepository implements BookingsSource {
   @override
   Future<List<Booking>?> fetch() async {
     try {
-      final rows = await client.getList('/bookings');
-      return [for (final row in rows) bookingFromRow(row)];
+      return [for (final w in await client.service.bookings()) w.value];
     } catch (error) {
       debugPrint('API: bookings fetch failed — ${ApiClient.describeError(error)}');
       return null;
@@ -100,10 +108,61 @@ class ApiBookingsRepository implements BookingsSource {
   @override
   Future<Booking?> add(Booking booking) async {
     try {
-      final row = await client.post('/bookings', body: bookingToRow(booking));
-      return row == null ? null : bookingFromRow(row);
+      return (await client.service.addBooking(bookingToRow(booking))).value;
     } catch (error) {
       debugPrint('API: booking insert failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+}
+
+class ApiOrdersRepository implements OrdersSource {
+  ApiOrdersRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<List<FoodOrder>?> fetch() async {
+    try {
+      return [for (final w in await client.service.orders()) w.value];
+    } catch (error) {
+      debugPrint('API: orders fetch failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+
+  @override
+  Future<FoodOrder?> place(FoodOrder order) async {
+    try {
+      return (await client.service.placeOrder(orderToRow(order))).value;
+    } catch (error) {
+      debugPrint('API: order failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+}
+
+class ApiRidesRepository implements RidesSource {
+  ApiRidesRepository(this.client);
+
+  final ApiClient client;
+
+  @override
+  Future<List<Ride>?> fetch() async {
+    try {
+      return [for (final w in await client.service.rides()) w.value];
+    } catch (error) {
+      debugPrint('API: rides fetch failed — ${ApiClient.describeError(error)}');
+      return null;
+    }
+  }
+
+  @override
+  Future<Ride?> book(Ride ride) async {
+    try {
+      return (await client.service.bookRide(rideToRow(ride))).value;
+    } catch (error) {
+      debugPrint('API: ride booking failed — ${ApiClient.describeError(error)}');
       return null;
     }
   }
@@ -120,18 +179,7 @@ class ApiFavouritesRepository implements FavouritesSource {
   @override
   Future<Map<String, Set<String>>?> fetch() async {
     try {
-      final row = await client.getObject('/favourites');
-      if (row == null) return null;
-      return {
-        propertyType: {
-          for (final id in (row[propertyType] as List? ?? const []))
-            id.toString(),
-        },
-        restaurantType: {
-          for (final id in (row[restaurantType] as List? ?? const []))
-            id.toString(),
-        },
-      };
+      return (await client.service.favourites()).value;
     } catch (error) {
       debugPrint('API: favourites fetch failed — ${ApiClient.describeError(error)}');
       return null;
@@ -141,8 +189,8 @@ class ApiFavouritesRepository implements FavouritesSource {
   @override
   Future<void> add(String itemType, String itemId) async {
     try {
-      await client.post('/favourites',
-          body: {'item_type': itemType, 'item_id': itemId});
+      await client.service
+          .addFavourite({'item_type': itemType, 'item_id': itemId});
     } catch (error) {
       debugPrint('API: favourite add failed — ${ApiClient.describeError(error)}');
     }
@@ -151,8 +199,8 @@ class ApiFavouritesRepository implements FavouritesSource {
   @override
   Future<void> remove(String itemType, String itemId) async {
     try {
-      await client.delete('/favourites',
-          body: {'item_type': itemType, 'item_id': itemId});
+      await client.service
+          .removeFavourite({'item_type': itemType, 'item_id': itemId});
     } catch (error) {
       debugPrint('API: favourite remove failed — ${ApiClient.describeError(error)}');
     }
@@ -180,7 +228,7 @@ class ApiAuthRepository implements AuthSource {
   @override
   Future<SignInResult> signInWithGoogle() async {
     try {
-      await client.post('/auth/google');
+      await client.service.signInWithGoogle();
       _signedIn = true;
       // Flagged as a demo session: no Google account was involved, and the
       // UI has to be able to say so rather than show a normal sign-in.
@@ -197,8 +245,7 @@ class ApiAuthRepository implements AuthSource {
     required String phone,
   }) async {
     try {
-      await client.post('/auth/otp',
-          body: {'phone': formatPhone(countryCode, phone)});
+      await client.service.sendOtp({'phone': formatPhone(countryCode, phone)});
       return null;
     } catch (error) {
       return ApiClient.describeError(error);
@@ -212,7 +259,7 @@ class ApiAuthRepository implements AuthSource {
     required String token,
   }) async {
     try {
-      await client.post('/auth/verify', body: {
+      await client.service.verifyOtp({
         'phone': formatPhone(countryCode, phone),
         'token': token,
       });
@@ -226,7 +273,7 @@ class ApiAuthRepository implements AuthSource {
   @override
   Future<Map<String, dynamic>?> fetchProfile() async {
     try {
-      return await client.getObject('/profile');
+      return (await client.service.profile()).value;
     } catch (error) {
       debugPrint('API: profile fetch failed — ${ApiClient.describeError(error)}');
       return null;
@@ -241,7 +288,7 @@ class ApiAuthRepository implements AuthSource {
     String? address,
   }) async {
     try {
-      await client.patch('/profile', body: {
+      await client.service.saveProfile({
         'full_name': ?fullName,
         'role': ?role,
         'location_label': ?locationLabel,
@@ -255,86 +302,10 @@ class ApiAuthRepository implements AuthSource {
   @override
   Future<void> signOut() async {
     try {
-      await client.post('/auth/signout');
+      await client.service.signOut();
     } catch (_) {
       // Signing out locally matters more than telling the server.
     }
     _signedIn = false;
-  }
-}
-
-class ApiConfigRepository implements ConfigSource {
-  ApiConfigRepository(this.client);
-
-  final ApiClient client;
-
-  @override
-  Future<AppConfig?> fetch() async {
-    try {
-      final row = await client.getObject('/config');
-      if (row == null) return null;
-      // Parsed against the bundled taxonomy, so a partial payload fills in
-      // field by field rather than blanking a screen.
-      return appConfigFromRow(row, kBundledConfig);
-    } catch (error) {
-      debugPrint('API: config fetch failed — ${ApiClient.describeError(error)}');
-      return null;
-    }
-  }
-}
-
-class ApiOrdersRepository implements OrdersSource {
-  ApiOrdersRepository(this.client);
-
-  final ApiClient client;
-
-  @override
-  Future<List<FoodOrder>?> fetch() async {
-    try {
-      final rows = await client.getList('/orders');
-      return [for (final row in rows) orderFromRow(row)];
-    } catch (error) {
-      debugPrint('API: orders fetch failed — ${ApiClient.describeError(error)}');
-      return null;
-    }
-  }
-
-  @override
-  Future<FoodOrder?> place(FoodOrder order) async {
-    try {
-      final row = await client.post('/orders', body: orderToRow(order));
-      return row == null ? null : orderFromRow(row);
-    } catch (error) {
-      debugPrint('API: order failed — ${ApiClient.describeError(error)}');
-      return null;
-    }
-  }
-}
-
-class ApiRidesRepository implements RidesSource {
-  ApiRidesRepository(this.client);
-
-  final ApiClient client;
-
-  @override
-  Future<List<Ride>?> fetch() async {
-    try {
-      final rows = await client.getList('/rides');
-      return [for (final row in rows) rideFromRow(row)];
-    } catch (error) {
-      debugPrint('API: rides fetch failed — ${ApiClient.describeError(error)}');
-      return null;
-    }
-  }
-
-  @override
-  Future<Ride?> book(Ride ride) async {
-    try {
-      final row = await client.post('/rides', body: rideToRow(ride));
-      return row == null ? null : rideFromRow(row);
-    } catch (error) {
-      debugPrint('API: ride booking failed — ${ApiClient.describeError(error)}');
-      return null;
-    }
   }
 }
