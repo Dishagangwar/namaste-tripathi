@@ -4,11 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 import 'demo_backend.dart';
 
-/// The app's HTTP client.
+/// Owns the Dio instance and the Retrofit client built on it.
 ///
 /// `ApiClient.demo()` attaches [DemoBackend], which answers every request
 /// in-process. `ApiClient.live()` points at a real server instead. Nothing
-/// above this class knows which it is holding.
+/// above this class knows which it is holding -- the repositories only ever
+/// see [service].
 class ApiClient {
   /// [service] is injectable so tests can drive the repositories through a
   /// mocked API without standing up Dio, an interceptor and a wire format
@@ -46,49 +47,9 @@ class ApiClient {
 
   final Dio dio;
 
-  /// The generated Retrofit client. The repositories move onto this next;
-  /// the hand-written helpers below go once they have.
+  /// The generated Retrofit client. Every call the app makes goes through
+  /// this; the paths live in `api_service.dart`, not at the call sites.
   final ApiService service;
-
-  /// GETs a JSON array. Returns an empty list rather than throwing when the
-  /// body is not the shape expected, so one odd endpoint cannot take down a
-  /// whole screen.
-  Future<List<Map<String, dynamic>>> getList(String path) async {
-    final response = await dio.get<dynamic>(path);
-    final data = response.data;
-    if (data is! List) return const [];
-    return [
-      for (final row in data)
-        if (row is Map) Map<String, dynamic>.from(row),
-    ];
-  }
-
-  Future<Map<String, dynamic>?> getObject(String path) async {
-    final response = await dio.get<dynamic>(path);
-    final data = response.data;
-    return data is Map ? Map<String, dynamic>.from(data) : null;
-  }
-
-  Future<Map<String, dynamic>?> post(
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    final response = await dio.post<dynamic>(path, data: body);
-    final data = response.data;
-    return data is Map ? Map<String, dynamic>.from(data) : null;
-  }
-
-  Future<void> delete(String path, {Map<String, dynamic>? body}) =>
-      dio.delete<dynamic>(path, data: body);
-
-  Future<Map<String, dynamic>?> patch(
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    final response = await dio.patch<dynamic>(path, data: body);
-    final data = response.data;
-    return data is Map ? Map<String, dynamic>.from(data) : null;
-  }
 
   /// Turns a Dio failure into something worth showing a user. The server's
   /// own message wins when it sent one.
