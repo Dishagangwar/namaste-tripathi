@@ -329,8 +329,11 @@ void main() {
   });
 
   test('an unknown route 404s rather than hanging', () async {
+    // Straight through Dio rather than the Retrofit client: there is no
+    // generated method for a path that does not exist, which is rather the
+    // point of declaring them.
     await expectLater(
-      client.getList('/nope'),
+      client.dio.get<dynamic>('/nope'),
       throwsA(isA<DioException>().having(
         (e) => e.response?.statusCode,
         'statusCode',
