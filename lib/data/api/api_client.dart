@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import 'api_service.dart';
 import 'demo_backend.dart';
 
 /// The app's HTTP client.
@@ -9,7 +10,11 @@ import 'demo_backend.dart';
 /// in-process. `ApiClient.live()` points at a real server instead. Nothing
 /// above this class knows which it is holding.
 class ApiClient {
-  ApiClient(this.dio);
+  /// [service] is injectable so tests can drive the repositories through a
+  /// mocked API without standing up Dio, an interceptor and a wire format
+  /// just to make one call fail.
+  ApiClient(this.dio, {ApiService? service})
+      : service = service ?? ApiService(dio);
 
   /// Everything served by the in-app backend. The host is never resolved,
   /// but a real-looking base URL keeps logs and errors readable.
@@ -40,6 +45,10 @@ class ApiClient {
       );
 
   final Dio dio;
+
+  /// The generated Retrofit client. The repositories move onto this next;
+  /// the hand-written helpers below go once they have.
+  final ApiService service;
 
   /// GETs a JSON array. Returns an empty list rather than throwing when the
   /// body is not the shape expected, so one odd endpoint cannot take down a
