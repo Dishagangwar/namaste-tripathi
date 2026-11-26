@@ -10,6 +10,7 @@ import '../../core/widgets.dart';
 import '../../data/models.dart';
 import '../food/restaurant_detail_screen.dart';
 import '../hotels/hotel_detail_screen.dart';
+import '../location/location_picker_screen.dart';
 import '../realestate/property_detail_screen.dart';
 import '../shell/main_shell.dart';
 
@@ -83,11 +84,30 @@ class _TopBar extends StatelessWidget {
   final SessionState session;
 
   void _pickLocation(BuildContext context) {
+    // The picker reads SessionBloc, so it is pushed from here where the
+    // bloc is in scope rather than from inside the sheet's own route.
+    final session = context.read<SessionBloc>();
+    void openPicker({bool startAtCurrentLocation = false}) {
+      Navigator.pop(context);
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BlocProvider.value(
+            value: session,
+            child: LocationPickerScreen(
+              startAtCurrentLocation: startAtCurrentLocation,
+            ),
+          ),
+        ),
+      );
+    }
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
       ),
       builder: (_) => SafeArea(
         child: Column(
@@ -107,26 +127,58 @@ class _TopBar extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Delivering to',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Delivering to',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
             const SizedBox(height: 8),
             for (final place in context.watch<ConfigBloc>().state.savedPlaces)
               ListTile(
                 leading: SoftIconBox(place.icon, size: 42, iconSize: 20),
-                title: Text(place.label,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(place.address,
-                    style: const TextStyle(
-                        fontSize: 12.5, color: AppColors.muted)),
+                title: Text(
+                  place.label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  place.address,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.muted,
+                  ),
+                ),
                 onTap: () {
                   context.read<SessionBloc>().add(
-                      SessionLocationChanged(place.label, place.address));
+                    SessionLocationChanged(place.label, place.address),
+                  );
                   Navigator.pop(context);
                 },
               ),
+            ListTile(
+              leading: const SoftIconBox(
+                Icons.my_location_rounded,
+                size: 42,
+                iconSize: 20,
+              ),
+              title: const Text(
+                'Use current location',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onTap: () => openPicker(startAtCurrentLocation: true),
+            ),
+            ListTile(
+              leading: const SoftIconBox(
+                Icons.map_outlined,
+                size: 42,
+                iconSize: 20,
+              ),
+              title: const Text(
+                'Choose on map',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onTap: () => openPicker(),
+            ),
             const SizedBox(height: 10),
           ],
         ),
@@ -147,15 +199,20 @@ class _TopBar extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 18, color: AppColors.primary),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
                       session.location,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 14.5, fontWeight: FontWeight.w600),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const Icon(Icons.keyboard_arrow_down_rounded, size: 19),
@@ -187,8 +244,11 @@ class _TopBar extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      const Icon(Icons.notifications_none_rounded,
-                          size: 21, color: AppColors.primary),
+                      const Icon(
+                        Icons.notifications_none_rounded,
+                        size: 21,
+                        color: AppColors.primary,
+                      ),
                       Positioned(
                         top: 10,
                         right: 11,
@@ -233,18 +293,17 @@ class _HeroSearch extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned(
-              right: -6,
-              top: -4,
-              child: _DotGrid(),
-            ),
+            Positioned(right: -6, top: -4, child: _DotGrid()),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Find everything in',
                   style: TextStyle(
-                      color: Colors.white, fontSize: 19, height: 1.25),
+                    color: Colors.white,
+                    fontSize: 19,
+                    height: 1.25,
+                  ),
                 ),
                 const Text(
                   'your City',
@@ -267,13 +326,18 @@ class _HeroSearch extends StatelessWidget {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.search_rounded,
-                            color: AppColors.faint, size: 21),
+                        Icon(
+                          Icons.search_rounded,
+                          color: AppColors.faint,
+                          size: 21,
+                        ),
                         SizedBox(width: 10),
                         Text(
                           'Search for food, hotels, or rides',
-                          style:
-                              TextStyle(color: AppColors.faint, fontSize: 14),
+                          style: TextStyle(
+                            color: AppColors.faint,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -347,7 +411,9 @@ class _CategoryGrid extends StatelessWidget {
                       c.label,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 13.5, fontWeight: FontWeight.w600),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -366,7 +432,9 @@ class _CategoryGrid extends StatelessWidget {
               Text(
                 config.wideCategory.label,
                 style: const TextStyle(
-                    fontSize: 15.5, fontWeight: FontWeight.w700),
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -396,7 +464,11 @@ class _Carousel extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
-          child: SectionHeader(title, actionLabel: 'See all', onAction: onSeeAll),
+          child: SectionHeader(
+            title,
+            actionLabel: 'See all',
+            onAction: onSeeAll,
+          ),
         ),
         SizedBox(
           height: height,
@@ -446,7 +518,9 @@ class _RestaurantMini extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w700),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Text(
@@ -454,18 +528,25 @@ class _RestaurantMini extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 11.5, color: AppColors.muted),
+                      fontSize: 11.5,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 7),
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded,
-                          size: 15, color: AppColors.star),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 15,
+                        color: AppColors.star,
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         restaurant.rating.toStringAsFixed(1),
                         style: const TextStyle(
-                            fontSize: 12.5, fontWeight: FontWeight.w700),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -519,13 +600,17 @@ class _HotelMini extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w700),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     hotel.location,
                     style: const TextStyle(
-                        fontSize: 11.5, color: AppColors.muted),
+                      fontSize: 11.5,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 7),
                   Text(
@@ -582,7 +667,9 @@ class _PropertyMini extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 14.5, fontWeight: FontWeight.w700),
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -602,11 +689,12 @@ class _PropertyMini extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 11.5, color: AppColors.muted),
+                      fontSize: 11.5,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  if (property.tags.contains('Premium'))
-                    const Pill('Premium'),
+                  if (property.tags.contains('Premium')) const Pill('Premium'),
                 ],
               ),
             ),
@@ -663,13 +751,17 @@ class _RentalStrip extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 14.5, fontWeight: FontWeight.w700),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     property.configuration,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.muted),
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   Text(
