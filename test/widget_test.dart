@@ -10,6 +10,7 @@ import 'package:namaste_tripathi/bloc/session/session_bloc.dart';
 import 'package:namaste_tripathi/core/theme.dart';
 import 'package:namaste_tripathi/data/backend.dart';
 import 'package:namaste_tripathi/data/mock_data.dart';
+import 'package:namaste_tripathi/data/payments.dart';
 import 'package:namaste_tripathi/features/biketaxi/bike_taxi_screen.dart';
 import 'package:namaste_tripathi/features/food/payment_screen.dart';
 import 'package:namaste_tripathi/main.dart';
@@ -38,8 +39,9 @@ void main() {
     expect(find.text('Enter Your Mobile Number'), findsOneWidget);
   });
 
-  testWidgets('placing an order records it and files an itinerary entry',
-      (tester) async {
+  testWidgets('placing an order records it and files an itinerary entry', (
+    tester,
+  ) async {
     // Supabase mode with no key, so every repository short-circuits: this
     // test is about the wiring from the button to the blocs.
     //
@@ -64,7 +66,9 @@ void main() {
         ],
         child: MaterialApp(
           theme: buildAppTheme(),
-          home: const PaymentScreen(),
+          home: const PaymentScreen(
+            gateway: MockPaymentGateway(delay: Duration.zero),
+          ),
         ),
       ),
     );
@@ -73,7 +77,12 @@ void main() {
     expect(orders.state.items, isEmpty);
 
     await tester.tap(find.text('Place Order'));
+    await tester.pumpAndSettle();
+    // The mock checkout asks for the UPI details first; no order yet.
+    expect(orders.state.items, isEmpty);
+    await tester.tap(find.textContaining('Pay ₹'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     // The order is on the list before any write completes, and the tracker
     // is showing it.
@@ -101,8 +110,50 @@ void main() {
     await tester.pump(const Duration(seconds: 7));
   });
 
-  testWidgets('the bike taxi screen reads its ride classes from config',
-      (tester) async {
+  testWidgets('a declined payment keeps the basket and places no order', (
+    tester,
+  ) async {
+    final cart = CartBloc();
+    final orders = OrdersBloc();
+    final bookings = BookingsBloc();
+    final restaurant = kRestaurants.first;
+    cart.add(CartItemAdded(restaurant.menu.first, restaurant));
+    await cart.stream.first;
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: cart),
+          BlocProvider.value(value: orders),
+          BlocProvider.value(value: bookings),
+          BlocProvider(create: (_) => SessionBloc()),
+        ],
+        child: MaterialApp(
+          theme: buildAppTheme(),
+          home: const PaymentScreen(
+            gateway: MockPaymentGateway(delay: Duration.zero),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Place Order'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'fail@upi');
+    await tester.tap(find.textContaining('Pay ₹'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('The UPI payment was declined by your bank.'),
+      findsOneWidget,
+    );
+    expect(orders.state.items, isEmpty);
+    expect(cart.state.isEmpty, isFalse);
+  });
+
+  testWidgets('the bike taxi screen reads its ride classes from config', (
+    tester,
+  ) async {
     final rides = RidesBloc();
 
     await tester.pumpWidget(
@@ -124,8 +175,7 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Airport'), findsOneWidget);
 
-    await tester.enterText(
-        find.byType(TextField).first, 'Sector 62, Noida');
+    await tester.enterText(find.byType(TextField).first, 'Sector 62, Noida');
     await tester.pump();
 
     // The classes, and a fare computed from the served price per km.
@@ -145,8 +195,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   });
 
-  testWidgets('an unconfigured build refuses Google sign-in out loud',
-      (tester) async {
+  testWidgets('an unconfigured build refuses Google sign-in out loud', (
+    tester,
+  ) async {
     // Supabase mode with no key compiled in. This used to walk straight into
     // the app with no session, then drop every write in silence; the guard
     // now reports it instead.
