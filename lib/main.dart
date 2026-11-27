@@ -9,6 +9,7 @@ import 'bloc/catalog/catalog_bloc.dart';
 import 'bloc/config/config_bloc.dart';
 import 'bloc/favourites/favourites_bloc.dart';
 import 'bloc/orders/orders_bloc.dart';
+import 'bloc/preferences/preferences_cubit.dart';
 import 'bloc/rides/rides_bloc.dart';
 import 'bloc/session/session_bloc.dart';
 import 'core/theme.dart';
@@ -56,6 +57,10 @@ class NamasteTripathiApp extends StatelessWidget {
         BlocProvider(create: (_) => BookingsBloc()),
         BlocProvider(create: (_) => OrdersBloc()),
         BlocProvider(create: (_) => RidesBloc()),
+        BlocProvider(
+          lazy: false,
+          create: (_) => PreferencesCubit()..load(),
+        ),
         // lazy: false matters here -- a lazy bloc would not be built until
         // the home screen first read it, so the fetch would start after
         // onboarding rather than during it.
@@ -75,6 +80,16 @@ class NamasteTripathiApp extends StatelessWidget {
         title: 'Namaste Tripathi',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
+        // Applies the text size chosen under Profile > Appearance.
+        builder: (context, child) {
+          final scale = context.select(
+              (PreferencesCubit c) => c.state.textSize.scale);
+          return MediaQuery.withClampedTextScaling(
+            minScaleFactor: scale,
+            maxScaleFactor: scale,
+            child: child!,
+          );
+        },
         home: const OnboardingScreen(),
       ),
     );
