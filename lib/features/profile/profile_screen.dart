@@ -6,7 +6,16 @@ import '../../bloc/favourites/favourites_bloc.dart';
 import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../../bloc/catalog/catalog_bloc.dart';
 import '../auth/onboarding_screen.dart';
+import 'appearance_screen.dart';
+import 'edit_profile_screen.dart';
+import 'help_centre_screen.dart';
+import 'language_screen.dart';
+import 'legal_screen.dart';
+import 'notifications_screen.dart';
+import 'payment_methods_screen.dart';
+import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,6 +25,7 @@ class ProfileScreen extends StatelessWidget {
     final session = context.watch<SessionBloc>().state;
     final bookings = context.watch<BookingsBloc>().state.items.length;
     final favs = context.watch<FavouritesBloc>().state.propertyIds.length;
+    final coupons = context.watch<CatalogBloc>().state.offers.length;
 
     return SafeArea(
       bottom: false,
@@ -111,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
                       height: 34,
                       color: Colors.white24,
                     ),
-                    const Expanded(child: _Stat('4', 'Coupons')),
+                    Expanded(child: _Stat('$coupons', 'Coupons')),
                   ],
                 ),
               ],
@@ -146,8 +156,10 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       trailing: const Icon(Icons.chevron_right_rounded,
                           color: AppColors.faint),
-                      onTap: () => showAppSnack(
-                          context, '${section.$2[i].$2} coming soon.'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: _routes[section.$2[i].$2]!),
+                      ),
                     ),
                     if (i != section.$2.length - 1)
                       const Divider(indent: 56, height: 1),
@@ -182,6 +194,19 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  /// Where each row under the profile card leads.
+  static final _routes = <String, WidgetBuilder>{
+    'Edit profile': (_) => const EditProfileScreen(),
+    'Saved addresses': (_) => const SavedAddressesScreen(),
+    'Payment methods': (_) => const PaymentMethodsScreen(),
+    'Notifications': (_) => const NotificationsScreen(),
+    'Language': (_) => const LanguageScreen(),
+    'Appearance': (_) => const AppearanceScreen(),
+    'Help centre': (_) => const HelpCentreScreen(),
+    'Privacy policy': (_) => LegalScreen.privacy,
+    'Terms of service': (_) => LegalScreen.terms,
+  };
 
   static const _sections = <(String, List<(IconData, String)>)>[
     (
