@@ -7,6 +7,10 @@ import '../../bloc/session/session_bloc.dart';
 
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../offers/offers_screen.dart';
+import '../profile/help_centre_screen.dart';
+import '../profile/payment_methods_screen.dart';
+import '../profile/saved_addresses_screen.dart';
 import 'food_list_screen.dart';
 
 class FoodOrdersScreen extends StatelessWidget {
@@ -189,16 +193,33 @@ class FoodProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          for (final row in const [
-            (Icons.location_on_outlined, 'Saved addresses'),
-            (Icons.payment_rounded, 'Payment methods'),
-            (Icons.local_offer_outlined, 'Your coupons'),
-            (Icons.support_agent_rounded, 'Help & support'),
+          for (final row in <(IconData, String, WidgetBuilder)>[
+            (
+              Icons.location_on_outlined,
+              'Saved addresses',
+              (_) => const SavedAddressesScreen()
+            ),
+            (
+              Icons.payment_rounded,
+              'Payment methods',
+              (_) => const PaymentMethodsScreen()
+            ),
+            (
+              Icons.local_offer_outlined,
+              'Your coupons',
+              (_) => const Scaffold(body: OffersScreen())
+            ),
+            (
+              Icons.support_agent_rounded,
+              'Help & support',
+              (_) => const HelpCentreScreen()
+            ),
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: AppCard(
-                onTap: () => showAppSnack(context, '${row.$2} coming soon.'),
+                onTap: () => Navigator.of(context)
+                    .push(MaterialPageRoute<void>(builder: row.$3)),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 14),
                 child: Row(
