@@ -8,10 +8,17 @@ import '../../bloc/session/session_bloc.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../data/models.dart';
+import '../../data/payments.dart';
 import 'order_success_screen.dart';
 
 class _Method {
-  const _Method(this.id, this.label, this.icon, this.section, {this.add = false});
+  const _Method(
+    this.id,
+    this.label,
+    this.icon,
+    this.section, {
+    this.add = false,
+  });
   final String id;
   final String label;
   final IconData icon;
@@ -20,19 +27,41 @@ class _Method {
 }
 
 const _methods = <_Method>[
-  _Method('gpay', 'Google Pay UPI', Icons.account_balance_wallet_outlined,
-      'Recommended'),
+  _Method(
+    'gpay',
+    'Google Pay UPI',
+    Icons.account_balance_wallet_outlined,
+    'Recommended',
+  ),
   _Method('paytm', 'Paytm UPI', Icons.credit_card_rounded, 'Recommended'),
-  _Method('card', 'Add credit or debit cards', Icons.credit_card_rounded,
-      'Cards', add: true),
-  _Method('netbank', 'Netbanking', Icons.account_balance_rounded,
-      'Net Banking', add: true),
-  _Method('cod', 'Cash on Delivery', Icons.payments_outlined,
-      'Pay on Delivery', add: true),
+  _Method(
+    'card',
+    'Add credit or debit cards',
+    Icons.credit_card_rounded,
+    'Cards',
+    add: true,
+  ),
+  _Method(
+    'netbank',
+    'Netbanking',
+    Icons.account_balance_rounded,
+    'Net Banking',
+    add: true,
+  ),
+  _Method(
+    'cod',
+    'Cash on Delivery',
+    Icons.payments_outlined,
+    'Pay on Delivery',
+    add: true,
+  ),
 ];
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  const PaymentScreen({super.key, this.gateway = const MockPaymentGateway()});
+
+  /// Who takes the payment. A mock by default; see [PaymentGateway].
+  final PaymentGateway gateway;
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -59,8 +88,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
               child: Text(
                 section,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.muted),
+                style: const TextStyle(fontSize: 13, color: AppColors.muted),
               ),
             ),
             for (final m in _methods.where((m) => m.section == section))
@@ -79,9 +107,51 @@ class _PaymentScreenState extends State<PaymentScreen> {
         caption: 'Total amount',
         value: rupees(cart.total),
         actionLabel: 'Place Order',
-        onAction: () => _placeOrder(context, cart),
+        onAction: () => _pay(context, cart),
       ),
     );
+  }
+
+  /// Collects the payment, then places the order only if it went through.
+  Future<void> _pay(BuildContext context, CartState cart) async {
+    if (cart.isEmpty) {
+      showAppSnack(context, 'Your basket is empty.');
+      return;
+    }
+    final method = _methods.firstWhere((m) => m.id == _selected);
+
+    // Cash on delivery has nothing to collect up front.
+    PaymentResult? result;
+    if (method.id == 'cod') {
+      result = await widget.gateway.charge(
+        PaymentRequest(amount: cart.total, method: method.id),
+      );
+    } else {
+      result = await showModalBottomSheet<PaymentResult>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sheet),
+          ),
+        ),
+        builder: (_) => _MockCheckoutSheet(
+          method: method,
+          amount: cart.total,
+          gateway: widget.gateway,
+        ),
+      );
+    }
+
+    if (!context.mounted || result == null) return; // cancelled
+    if (!result.success) {
+      showAppSnack(context, result.failureReason ?? 'Payment failed.');
+      return;
+    }
+    _placeOrder(context, cart);
   }
 
   /// Turns the basket into an order, sends it, and leaves for the tracker.
@@ -130,21 +200,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // The order is also an itinerary entry, so it turns up on the bookings
     // screen next to stays and visits rather than only in order history.
     context.read<BookingsBloc>().add(
-          BookingAdded(
-            Booking(
-              id: 'order-${now.microsecondsSinceEpoch}',
-              title: order.restaurantName,
-              subtitle: '${order.itemCount} '
-                  '${order.itemCount == 1 ? 'item' : 'items'} • '
-                  '${rupees(order.total)}',
-              kind: 'Food Order',
-              when: formatWhen(now),
-              status: BookingStatus.processing,
-              image: order.image,
-              location: context.read<SessionBloc>().state.address,
-            ),
-          ),
-        );
+      BookingAdded(
+        Booking(
+          id: 'order-${now.microsecondsSinceEpoch}',
+          title: order.restaurantName,
+          subtitle:
+              '${order.itemCount} '
+              '${order.itemCount == 1 ? 'item' : 'items'} • '
+              '${rupees(order.total)}',
+          kind: 'Food Order',
+          when: formatWhen(now),
+          status: BookingStatus.processing,
+          image: order.image,
+          location: context.read<SessionBloc>().state.address,
+        ),
+      ),
+    );
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => OrderSuccessScreen(order: order)),
@@ -195,7 +266,9 @@ class _MethodTile extends StatelessWidget {
               child: Text(
                 method.label,
                 style: const TextStyle(
-                    fontSize: 14.5, fontWeight: FontWeight.w600),
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (method.add)
@@ -210,6 +283,164 @@ class _MethodTile extends StatelessWidget {
             else
               const Icon(Icons.chevron_right_rounded, color: AppColors.faint),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A stand-in for a provider's checkout: collects one detail for the chosen
+/// method, "processes" it through the gateway, and pops with the result.
+class _MockCheckoutSheet extends StatefulWidget {
+  const _MockCheckoutSheet({
+    required this.method,
+    required this.amount,
+    required this.gateway,
+  });
+
+  final _Method method;
+  final double amount;
+  final PaymentGateway gateway;
+
+  @override
+  State<_MockCheckoutSheet> createState() => _MockCheckoutSheetState();
+}
+
+class _MockCheckoutSheetState extends State<_MockCheckoutSheet> {
+  static const _banks = [
+    'State Bank of India',
+    'HDFC Bank',
+    'ICICI Bank',
+    MockPaymentGateway.downBank,
+  ];
+
+  late final _controller = TextEditingController(
+    text: switch (widget.method.id) {
+      'gpay' || 'paytm' => 'demo@upi',
+      'card' => '4242 4242 4242 4242',
+      _ => '',
+    },
+  );
+  String? _bank;
+  bool _processing = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _processing = true;
+      _error = null;
+    });
+    final detail = widget.method.id == 'netbank'
+        ? (_bank ?? '')
+        : _controller.text;
+    final result = await widget.gateway.charge(
+      PaymentRequest(
+        amount: widget.amount,
+        method: widget.method.id,
+        detail: detail,
+      ),
+    );
+    if (!mounted) return;
+    if (result.success) {
+      Navigator.pop(context, result);
+    } else {
+      // Keep the sheet open so the user can correct the detail and retry.
+      setState(() {
+        _processing = false;
+        _error = result.failureReason;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final id = widget.method.id;
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.method.label,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Test mode: no real money is charged.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.muted),
+              ),
+              const SizedBox(height: 16),
+              if (id == 'netbank')
+                DropdownButtonFormField<String>(
+                  initialValue: _bank,
+                  decoration: const InputDecoration(labelText: 'Bank'),
+                  items: [
+                    for (final b in _banks)
+                      DropdownMenuItem(value: b, child: Text(b)),
+                  ],
+                  onChanged: _processing
+                      ? null
+                      : (v) => setState(() => _bank = v),
+                )
+              else
+                TextField(
+                  controller: _controller,
+                  enabled: !_processing,
+                  keyboardType: id == 'card'
+                      ? TextInputType.number
+                      : TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: id == 'card' ? 'Card number' : 'UPI ID',
+                    helperText: id == 'card'
+                        ? 'Ending 0000 is declined'
+                        : 'An ID containing "fail" is declined',
+                  ),
+                ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _error!,
+                  style: const TextStyle(fontSize: 13, color: AppColors.danger),
+                ),
+              ],
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _processing ? null : _submit,
+                  child: _processing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text('Pay ${rupees(widget.amount)}'),
+                ),
+              ),
+              if (!_processing)
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
