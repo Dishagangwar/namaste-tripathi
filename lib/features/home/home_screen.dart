@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/catalog/catalog_bloc.dart';
 import '../../bloc/config/config_bloc.dart';
+import '../../bloc/preferences/preferences_cubit.dart';
 import '../../bloc/session/session_bloc.dart';
 
 import '../../core/theme.dart';
@@ -151,6 +152,31 @@ class _TopBar extends StatelessWidget {
                 onTap: () {
                   context.read<SessionBloc>().add(
                     SessionLocationChanged(place.label, place.address),
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            for (final a in context.watch<PreferencesCubit>().state.addresses)
+              ListTile(
+                leading: const SoftIconBox(
+                  Icons.bookmark_border_rounded,
+                  size: 42,
+                  iconSize: 20,
+                ),
+                title: Text(
+                  a.label,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  a.address,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.muted,
+                  ),
+                ),
+                onTap: () {
+                  context.read<SessionBloc>().add(
+                    SessionLocationChanged(a.label, a.address),
                   );
                   Navigator.pop(context);
                 },
